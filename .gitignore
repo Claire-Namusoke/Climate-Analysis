@@ -40,6 +40,10 @@ Thumbs.db
 # Project specific
 climate_data.json
 *.json.bak
+integrated_climate_shipping.csv
+integrated_climate_shipping.json
+maritime_*.csv
+maritime_*.json
 
 # Logs
 *.log

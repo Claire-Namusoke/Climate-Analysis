@@ -219,7 +219,7 @@ def check_for_updates(api_url, local_filename="climate_data.json"):
         
         # Check Last-Modified header
         api_last_modified = response.headers.get('Last-Modified')
-        local_last_modified = local_metadata.get('last_modified')
+        local_last_modified = local_metadata.get('last_modified') if local_metadata else None
         
         if api_last_modified and local_last_modified:
             if api_last_modified != local_last_modified:
@@ -227,7 +227,7 @@ def check_for_updates(api_url, local_filename="climate_data.json"):
         
         # Check ETag (if available)
         api_etag = response.headers.get('ETag')
-        local_etag = local_metadata.get('etag')
+        local_etag = local_metadata.get('etag') if local_metadata else None
         
         if api_etag and local_etag and api_etag != local_etag:
             return True, "API data changed (ETag mismatch)"
