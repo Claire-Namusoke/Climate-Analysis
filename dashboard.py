@@ -1,12 +1,15 @@
 """
 Climate Analysis Dashboard
 
-Interactive Streamlit dashboard for exploring World Bank climate data
-and maritime CO2 emissions. Shows temperature trends, shipping emissions,
-and their correlation.
+Interactive Streamlit dashboard for exploring World Bank climate data,
+maritime CO2 emissions, and sea level rise. Shows temperature trends, 
+shipping emissions, sea level rise, and their correlations.
+
+Maritime CO2 and Sea Level data: 2019-2024. Temperature data: 2019-2021 (World Bank).
 
 Author: Claire Namusoke
-Date: November 9, 2025
+Date: November 11, 2025
+Last Updated: November 11, 2025
 """
 
 import streamlit as st
@@ -111,8 +114,19 @@ def load_maritime_data():
         oecd_df['YearMonth'] = pd.to_datetime(oecd_df['TIME_PERIOD'])
         
         return world_df, oecd_df
-    except FileNotFoundError:
+    except Exception as e:
+        st.error(f"❌ Error loading maritime data: {e}")
         return None, None
+
+@st.cache_data
+def load_sea_level_data():
+    """Load and process sea level data from CSV file."""
+    try:
+        sea_level_df = pd.read_csv('sea_level_yearly.csv')
+        return sea_level_df
+    except Exception as e:
+        st.error(f"❌ Error loading sea level data: {e}")
+        return None
 
 # Load data
 try:
@@ -136,12 +150,25 @@ try:
     # Load maritime data
     world_maritime, oecd_maritime = load_maritime_data()
     
-    # Analysis type selector
-    analysis_options = ["🌡️ Global Overview", "🗺️ World Map", "🌎 Country Analysis", "📈 Trends & Comparisons", "📊 Statistics"]
+    # Load sea level data
+    sea_level_df = load_sea_level_data()
     
-    # Add emissions correlation option if maritime data exists
+    # Analysis type selector - simplified to main categories
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("### 📊 Analysis Categories")
+    
+    analysis_options = []
+    
+    # Add emissions analysis if maritime data exists
     if world_maritime is not None:
-        analysis_options.append("🚢 Climate & Shipping Emissions")
+        analysis_options.append("🚢 CO2 Emissions")
+    
+    # Add climate temperature
+    analysis_options.append("🌡️ Climate Temperature")
+    
+    # Add sea level option if sea level data exists
+    if sea_level_df is not None:
+        analysis_options.append("🌊 Sea Level")
     
     analysis_type = st.sidebar.radio(
         "Select Analysis",
@@ -149,14 +176,26 @@ try:
     )
     
     # Main content area
-    if analysis_type == "🌡️ Global Overview":
-        st.header("Global Temperature Overview")
+    if analysis_type == "🌡️ Climate Temperature":
+        st.header("🌡️ Climate Temperature Analysis")
         
-        # Calculate global average by year
-        global_avg = df.groupby('Year')['Temperature'].mean().reset_index()
+        # Create tabs for different views
+        tab1, tab2, tab3, tab4, tab5 = st.tabs([
+            "📊", 
+            "🗺️", 
+            "🌎",
+            "📈",
+            "📊"
+        ])
         
-        # Key metrics
-        col1, col2, col3, col4 = st.columns(4)
+        with tab1:
+            st.subheader("Global Temperature Overview")
+            
+            # Calculate global average by year
+            global_avg = df.groupby('Year')['Temperature'].mean().reset_index()
+            
+            # Key metrics
+            col1, col2, col3, col4 = st.columns(4)
         
         with col1:
             latest_year = global_avg['Year'].max()
@@ -191,27 +230,11 @@ try:
         fig.update_layout(height=500)
         st.plotly_chart(fig, width="stretch")
         
-        # Decade comparison
-        st.subheader("📊 Temperature by Decade")
-        df['Decade'] = (df['Year'] // 10) * 10
-        decade_avg = df.groupby('Decade')['Temperature'].mean().reset_index()
-        
-        fig2 = px.bar(
-            decade_avg,
-            x='Decade',
-            y='Temperature',
-            title='Average Temperature by Decade',
-            labels={'Temperature': 'Avg Temperature (°C)', 'Decade': 'Decade'}
-        )
-        fig2.update_traces(marker_color='#2ca02c')
-        fig2.update_layout(height=400)
-        st.plotly_chart(fig2, width="stretch")
-    
-    elif analysis_type == "🗺️ World Map":
-        st.header("🗺️ Interactive World Temperature Map")
-        st.markdown("*Click and drag to pan, scroll to zoom, hover over countries for details*")
-        
-        # Continent selector for drill-through
+        with tab2:
+            st.subheader("🗺️ Interactive World Temperature Map")
+            st.markdown("*Click and drag to pan, scroll to zoom, hover over countries for details*")
+            
+            # Continent selector for drill-through
         continents = {
             'World': {'scope': 'world', 'center': None},
             'Africa': {'scope': 'africa', 'center': {'lat': 0, 'lon': 20}},
@@ -227,9 +250,9 @@ try:
         with col1:
             selected_year = st.slider(
                 "📅 Select Year",
-                min_value=int(df['Year'].min()),
-                max_value=int(df['Year'].max()),
-                value=int(df['Year'].max()),
+                min_value=2019,
+                max_value=2024,
+                value=2024,
                 step=1
             )
         
@@ -396,45 +419,6 @@ try:
             fig_country.update_layout(height=400, hovermode='x unified')
             st.plotly_chart(fig_country, width="stretch")
         
-        # Temperature distribution for selected year
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.subheader("📊 Temperature Distribution")
-            fig2 = px.histogram(
-                country_avg,
-                x='Avg_Temperature',
-                nbins=30,
-                title=f'Temperature Distribution - {selected_year}',
-                labels={'Avg_Temperature': 'Temperature (°C)', 'count': 'Number of Countries'}
-            )
-            fig2.update_traces(marker_color='#17becf')
-            fig2.update_layout(height=350)
-            st.plotly_chart(fig2, width="stretch")
-        
-        with col2:
-            st.subheader("🌡️ Temperature Zones")
-            
-            # Create temperature zones
-            country_avg['Zone'] = pd.cut(
-                country_avg['Avg_Temperature'],
-                bins=[-float('inf'), 0, 10, 20, 25, float('inf')],
-                labels=['Polar (<0°C)', 'Cold (0-10°C)', 'Temperate (10-20°C)', 'Warm (20-25°C)', 'Hot (>25°C)']
-            )
-            
-            zone_counts = country_avg['Zone'].value_counts().reset_index()
-            zone_counts.columns = ['Zone', 'Count']
-            
-            fig3 = px.pie(
-                zone_counts,
-                names='Zone',
-                values='Count',
-                title=f'Countries by Temperature Zone - {selected_year}',
-                color_discrete_sequence=['#313695', '#4575b4', '#ffffbf', '#fdae61', '#a50026']
-            )
-            fig3.update_layout(height=350)
-            st.plotly_chart(fig3, width="stretch")
-        
         # Top/Bottom countries table
         st.subheader("🏆 Temperature Rankings")
         
@@ -457,21 +441,21 @@ try:
             coldest_15 = coldest_15.reset_index(drop=True)
             coldest_15.index = coldest_15.index + 1
             st.dataframe(coldest_15, width="stretch")
-    
-    elif analysis_type == "🌎 Country Analysis":
-        st.header("Country-Specific Analysis")
         
-        # Country selector
-        available_countries = sorted(df['Country_Code'].unique())
-        
-        col1, col2 = st.columns([2, 1])
-        
-        with col1:
-            selected_country = st.selectbox(
-                "Select a Country",
-                available_countries,
-                index=available_countries.index('USA') if 'USA' in available_countries else 0
-            )
+        with tab3:
+            st.subheader("Country-Specific Analysis")
+            
+            # Country selector
+            available_countries = sorted(df['Country_Code'].unique())
+            
+            col1, col2 = st.columns([2, 1])
+            
+            with col1:
+                selected_country = st.selectbox(
+                    "Select a Country",
+                    available_countries,
+                    index=available_countries.index('USA') if 'USA' in available_countries else 0
+                )
         
         with col2:
             country_name = df[df['Country_Code'] == selected_country]['Country_Name'].iloc[0]
@@ -525,22 +509,22 @@ try:
         )
         fig2.update_layout(height=400)
         st.plotly_chart(fig2, width="stretch")
-    
-    elif analysis_type == "📈 Trends & Comparisons":
-        st.header("Compare Countries")
         
-        # Multi-select for countries
-        available_countries = sorted(df['Country_Code'].unique())
-        
-        default_countries = ['USA', 'CHN', 'IND', 'DEU']
-        default_selection = [c for c in default_countries if c in available_countries]
-        
-        selected_countries = st.multiselect(
-            "Select Countries to Compare (max 10)",
-            available_countries,
-            default=default_selection[:min(4, len(default_selection))],
-            max_selections=10
-        )
+        with tab4:
+            st.subheader("Compare Countries")
+            
+            # Multi-select for countries
+            available_countries = sorted(df['Country_Code'].unique())
+            
+            default_countries = ['USA', 'CHN', 'IND', 'DEU']
+            default_selection = [c for c in default_countries if c in available_countries]
+            
+            selected_countries = st.multiselect(
+                "Select Countries to Compare (max 10)",
+                available_countries,
+                default=default_selection[:min(4, len(default_selection))],
+                max_selections=10
+            )
         
         if selected_countries:
             # Filter data
@@ -576,26 +560,26 @@ try:
             st.dataframe(summary, width="stretch")
         else:
             st.info("👆 Please select at least one country to compare")
-    
-    elif analysis_type == "📊 Statistics":
-        st.header("Statistical Analysis")
         
-        # Global statistics
-        st.subheader("🌍 Global Statistics")
-        
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.metric("Mean Temperature", f"{df['Temperature'].mean():.2f}°C")
-        
-        with col2:
-            st.metric("Median Temperature", f"{df['Temperature'].median():.2f}°C")
-        
-        with col3:
-            st.metric("Std Deviation", f"{df['Temperature'].std():.2f}°C")
-        
-        with col4:
-            st.metric("Data Points", f"{len(df):,}")
+        with tab5:
+            st.subheader("Statistical Analysis")
+            
+            # Global statistics
+            st.subheader("🌍 Global Statistics")
+            
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.metric("Mean Temperature", f"{df['Temperature'].mean():.2f}°C")
+            
+            with col2:
+                st.metric("Median Temperature", f"{df['Temperature'].median():.2f}°C")
+            
+            with col3:
+                st.metric("Std Deviation", f"{df['Temperature'].std():.2f}°C")
+            
+            with col4:
+                st.metric("Data Points", f"{len(df):,}")
         
         st.markdown("---")
         
@@ -641,7 +625,7 @@ try:
                 hide_index=True
             )
     
-    elif analysis_type == "🚢 Climate & Shipping Emissions":
+    elif analysis_type == "🚢 CO2 Emissions":
         st.header("🌡️🚢 Climate Change & Maritime Emissions Correlation")
         st.markdown("*Analyzing the relationship between shipping CO2 emissions and global temperature rise*")
         
@@ -675,13 +659,6 @@ try:
             with col3:
                 avg_temp = correlation_data['Avg_Temperature'].mean()
                 st.metric("Avg Global Temperature", f"{avg_temp:.2f}°C")
-            
-            with col4:
-                if len(correlation_data) >= 2:
-                    correlation = correlation_data['Avg_Temperature'].corr(correlation_data['CO2_Millions'])
-                    st.metric("Correlation Coefficient", f"{correlation:.3f}")
-                else:
-                    st.metric("Correlation", "N/A")
             
             st.markdown("---")
             
@@ -737,62 +714,6 @@ try:
             
             st.plotly_chart(fig, width="stretch")
             
-            # Statistical analysis
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.subheader("📊 Statistical Analysis")
-                
-                if len(correlation_data) >= 2:
-                    correlation = correlation_data['Avg_Temperature'].corr(correlation_data['CO2_Millions'])
-                    
-                    # Perform linear regression
-                    slope, intercept, r_value, p_value, std_err = stats.linregress(
-                        correlation_data['CO2_Millions'],
-                        correlation_data['Avg_Temperature']
-                    )
-                    
-                    r_squared = r_value ** 2  # type: ignore
-                    
-                    st.markdown(f"""
-                    **Correlation Analysis:**
-                    - **Pearson Correlation**: {correlation:.3f}
-                    - **R-squared**: {r_squared:.3f}
-                    - **P-value**: {p_value:.4f}
-                    - **Interpretation**: {'Strong positive' if correlation > 0.7 else 'Moderate positive' if correlation > 0.4 else 'Weak positive' if correlation > 0 else 'Negative'} relationship
-                    
-                    **Linear Regression:**
-                    - **Slope**: {slope:.6f}°C per million tonnes
-                    - **Intercept**: {intercept:.2f}°C
-                    
-                    **Key Insight:**
-                    For every 1 million tonnes increase in maritime CO2 emissions,
-                    global temperature rises by approximately **{slope:.6f}°C**.
-                    """)
-                else:
-                    st.info("Insufficient data points for correlation analysis.")
-            
-            with col2:
-                st.subheader("📈 Scatter Plot with Trend Line")
-                
-                if len(correlation_data) >= 2:
-                    fig2 = px.scatter(
-                        correlation_data,
-                        x='CO2_Millions',
-                        y='Avg_Temperature',
-                        trendline='ols',
-                        labels={
-                            'CO2_Millions': 'Maritime CO2 Emissions (Million Tonnes)',
-                            'Avg_Temperature': 'Global Average Temperature (°C)'
-                        },
-                        title='Temperature vs. Maritime Emissions',
-                        hover_data=['Year']
-                    )
-                    
-                    fig2.update_traces(marker=dict(size=15, color='#1f77b4'))
-                    fig2.update_layout(height=400)
-                    st.plotly_chart(fig2, width="stretch")
-            
             # Emissions breakdown by vessel type
             st.markdown("---")
             st.subheader("🚢 Maritime Emissions by Vessel Type")
@@ -816,18 +737,6 @@ try:
                 )
                 fig3.update_layout(height=500, yaxis={'categoryorder': 'total ascending'})
                 st.plotly_chart(fig3, width="stretch")
-            
-            with col2:
-                # Pie chart of vessel distribution
-                fig4 = px.pie(
-                    vessel_emissions.head(10),
-                    values='CO2_Millions',
-                    names='VESSEL',
-                    title='Distribution of Maritime CO2 Emissions',
-                    hole=0.4
-                )
-                fig4.update_layout(height=500)
-                st.plotly_chart(fig4, width="stretch")
             
             # Time series of emissions by month
             st.markdown("---")
@@ -868,6 +777,251 @@ try:
             - Implement carbon pricing for shipping
             - Invest in port electrification
             - Optimize shipping routes to reduce fuel consumption
+            """)
+    
+    elif analysis_type == "🌊 Sea Level":
+        st.header("🌊 Sea Level Rise & Climate Change")
+        
+        if sea_level_df is None:
+            st.error("❌ Sea level data not available. Please run `python sea_level.py` first.")
+        else:
+            st.markdown("""
+            This section analyzes the relationship between global temperature changes and sea level rise,
+            showing how warming temperatures contribute to rising sea levels through thermal expansion
+            and ice sheet melting.
+            """)
+            
+            # Key metrics
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                total_rise = sea_level_df['GMSL_Variation_mm'].iloc[-1] - sea_level_df['GMSL_Variation_mm'].iloc[0]
+                st.metric("Total Sea Level Rise", f"{total_rise:.1f} mm", 
+                         delta=f"{total_rise/10:.2f} cm (2019-2024)")
+            
+            with col2:
+                avg_rate = sea_level_df['Annual_Rate_mm'].mean()
+                st.metric("Average Rate", f"{avg_rate:.2f} mm/year")
+            
+            with col3:
+                recent_rate = sea_level_df[sea_level_df['Year'] >= 2020]['Annual_Rate_mm'].mean()
+                acceleration = recent_rate - sea_level_df[sea_level_df['Year'] <= 2000]['Annual_Rate_mm'].mean()
+                st.metric("Recent Rate (2020-2024)", f"{recent_rate:.2f} mm/year",
+                         delta=f"+{acceleration:.2f} mm/year acceleration")
+            
+            with col4:
+                years_covered = len(sea_level_df)
+                st.metric("Data Coverage", f"{years_covered} years",
+                         delta="2019-2024")
+            
+            st.markdown("---")
+            
+            # Regional Sea Level Rise Analysis
+            st.subheader("🌍 Top 5 Ocean Regions by Sea Level Rise")
+            
+            try:
+                # Load regional data
+                regional_df = pd.read_csv('sea_level_regional_2019_2024.csv')
+                
+                # Calculate total rise per region
+                regional_summary = regional_df.groupby('Region').agg({
+                    'Sea_Level_mm': ['min', 'max', 'mean', 'count']
+                }).reset_index()
+                regional_summary.columns = ['Region', 'Min_mm', 'Max_mm', 'Mean_mm', 'Records']
+                regional_summary['Total_Rise_mm'] = regional_summary['Max_mm'] - regional_summary['Min_mm']
+                
+                # Get top 5
+                top5_regions = regional_summary.nlargest(5, 'Total_Rise_mm')
+                
+                # Bar chart
+                fig_regional = px.bar(
+                    top5_regions,
+                    x='Region',
+                    y='Total_Rise_mm',
+                    title='Top 5 Ocean Regions by Sea Level Rise (2019-2024)',
+                    labels={'Total_Rise_mm': 'Total Sea Level Rise (mm)', 'Region': 'Ocean Region'},
+                    color='Total_Rise_mm',
+                    color_continuous_scale='Blues'
+                )
+                fig_regional.update_layout(height=400, showlegend=False, coloraxis_showscale=False)
+                st.plotly_chart(fig_regional, use_container_width=True)
+                        
+            except FileNotFoundError:
+                st.info("ℹ️ Regional sea level data not available. Run `python sea_level_regional.py` to generate regional analysis.")
+            except Exception as e:
+                st.warning(f"⚠️ Could not load regional data: {e}")
+            
+            st.markdown("---")
+            
+            # Temperature vs Sea Level correlation (2019-2024)
+            st.subheader("📊 Temperature vs Sea Level Rise Correlation")
+            
+            # Merge climate and sea level data
+            yearly_temp = df.groupby('Year')['Temperature'].mean().reset_index()
+            merged_df = yearly_temp.merge(sea_level_df, on='Year', how='inner')
+            
+            if len(merged_df) > 0:
+                # Create dual-axis chart
+                fig = go.Figure()
+                
+                # Temperature line
+                fig.add_trace(go.Scatter(
+                    x=merged_df['Year'],
+                    y=merged_df['Temperature'],
+                    name='Global Temperature',
+                    line=dict(color='#ff7f0e', width=3),
+                    yaxis='y'
+                ))
+                
+                # Sea level line
+                fig.add_trace(go.Scatter(
+                    x=merged_df['Year'],
+                    y=merged_df['GMSL_Variation_mm'],
+                    name='Sea Level Rise',
+                    line=dict(color='#1f77b4', width=3),
+                    yaxis='y2'
+                ))
+                
+                # Update layout with dual y-axes
+                fig.update_layout(
+                    title='Temperature Rise Drives Sea Level Increase',
+                    xaxis=dict(title='Year'),
+                    yaxis=dict(
+                        title='Global Average Temperature (°C)',
+                        title_font=dict(color='#ff7f0e'),
+                        tickfont=dict(color='#ff7f0e')
+                    ),
+                    yaxis2=dict(
+                        title='Sea Level Rise (mm)',
+                        title_font=dict(color='#1f77b4'),
+                        tickfont=dict(color='#1f77b4'),
+                        anchor='x',
+                        overlaying='y',
+                        side='right'
+                    ),
+                    hovermode='x unified',
+                    height=600,
+                    showlegend=True,
+                    legend=dict(x=0.01, y=0.99)
+                )
+                
+                st.plotly_chart(fig, width="stretch")
+            
+            st.markdown("---")
+            
+            # Triple correlation (if maritime data available)
+            if world_maritime is not None:
+                st.subheader("🌍 Climate Crisis: Temperature, Emissions & Sea Level (2019-2024)")
+                
+                # Aggregate maritime emissions by year
+                maritime_yearly = world_maritime.groupby('Year')['CO2_Emissions'].sum().reset_index()
+                maritime_yearly.columns = ['Year', 'Total_CO2']
+                maritime_yearly['CO2_Millions'] = maritime_yearly['Total_CO2'] / 1_000_000
+                
+                # Merge all three datasets - only keep years with complete data
+                triple_df = merged_df.merge(maritime_yearly, on='Year', how='inner')
+                # Filter out years with missing temperature data
+                triple_df = triple_df.dropna(subset=['Temperature'])
+                
+                if len(triple_df) > 0:
+                    # Normalize values for comparison (0-100 scale)
+                    triple_df['Temp_Norm'] = ((triple_df['Temperature'] - triple_df['Temperature'].min()) / 
+                                              (triple_df['Temperature'].max() - triple_df['Temperature'].min())) * 100
+                    triple_df['SeaLevel_Norm'] = ((triple_df['GMSL_Variation_mm'] - triple_df['GMSL_Variation_mm'].min()) / 
+                                                   (triple_df['GMSL_Variation_mm'].max() - triple_df['GMSL_Variation_mm'].min())) * 100
+                    triple_df['CO2_Norm'] = ((triple_df['CO2_Millions'] - triple_df['CO2_Millions'].min()) / 
+                                             (triple_df['CO2_Millions'].max() - triple_df['CO2_Millions'].min())) * 100
+                    
+                    # Triple line chart
+                    fig4 = go.Figure()
+                    
+                    fig4.add_trace(go.Scatter(
+                        x=triple_df['Year'],
+                        y=triple_df['Temp_Norm'],
+                        name='Temperature',
+                        line=dict(color='#ff7f0e', width=3),
+                        mode='lines+markers',
+                        marker=dict(size=8)
+                    ))
+                    
+                    fig4.add_trace(go.Scatter(
+                        x=triple_df['Year'],
+                        y=triple_df['SeaLevel_Norm'],
+                        name='Sea Level',
+                        line=dict(color='#1f77b4', width=3),
+                        mode='lines+markers',
+                        marker=dict(size=8)
+                    ))
+                    
+                    fig4.add_trace(go.Scatter(
+                        x=triple_df['Year'],
+                        y=triple_df['CO2_Norm'],
+                        name='Maritime CO2',
+                        line=dict(color='#2ca02c', width=3),
+                        mode='lines+markers',
+                        marker=dict(size=8)
+                    ))
+                    
+                    fig4.update_layout(
+                        title='The Climate Connection: All Three Indicators Rising Together',
+                        xaxis=dict(title='Year', dtick=1),
+                        yaxis=dict(title='Normalized Value (0-100)'),
+                        height=500,
+                        hovermode='x unified',
+                        legend=dict(
+                            orientation='h',
+                            yanchor='bottom',
+                            y=1.02,
+                            xanchor='right',
+                            x=1
+                        )
+                    )
+                    
+                    st.plotly_chart(fig4, width="stretch")
+                    
+                    st.markdown(f"""
+                    ### 🔍 Key Findings:
+                    
+                    1. **The Climate Connection**: Rising emissions lead to higher temperatures which cause rising sea levels
+                    
+                    2. **All Indicators Rising Together**: Clear evidence of interconnected climate change impacts
+                    
+                    ### ⚠️ Implications:
+                    - Sea levels have risen **{total_rise:.1f} mm** in the 2019-2024 period
+                    - Rate is **accelerating** from {sea_level_df['Annual_Rate_mm'].iloc[0]:.1f} to {sea_level_df['Annual_Rate_mm'].iloc[-1]:.1f} mm/year
+                    - Maritime sector contributes significantly to the problem
+                    - Urgent action needed to reduce emissions and slow sea level rise
+                    
+                    ### 📈 Projections:
+                    At current rates, by 2050:
+                    - Sea levels could rise another **{(2050-2024) * recent_rate:.0f} mm** (**{(2050-2024) * recent_rate / 10:.1f} cm**)
+                    - This threatens coastal cities and island nations
+                    - Economic cost could reach trillions of dollars
+                    """)
+            
+            st.markdown("---")
+            
+            st.markdown("""
+            ### 💡 Understanding Sea Level Rise
+            
+            **What Causes Sea Level Rise?**
+            1. **Thermal Expansion** (40%): Warmer water expands and takes up more space
+            2. **Melting Ice Sheets** (40%): Greenland and Antarctica losing ice mass
+            3. **Melting Glaciers** (20%): Mountain glaciers worldwide retreating
+            
+            **Why It Matters:**
+            - 40% of global population lives within 100 km of coastlines
+            - Major cities threatened: New York, Miami, Shanghai, Mumbai, Bangkok
+            - Small island nations facing existential threat
+            - Increased coastal flooding and storm surge damage
+            - Saltwater intrusion into freshwater supplies
+            
+            **What Can Be Done:**
+            - Reduce greenhouse gas emissions immediately
+            - Transition to renewable energy
+            - Protect and restore coastal ecosystems (mangroves, wetlands)
+            - Invest in coastal adaptation infrastructure
+            - International cooperation on climate action
             """)
     
     # Footer
