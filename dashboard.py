@@ -20,6 +20,7 @@ import plotly.graph_objects as go
 from datetime import datetime
 import numpy as np
 from scipy import stats
+import os
 
 # Page configuration
 st.set_page_config(
@@ -57,7 +58,8 @@ st.markdown("""
 @st.cache_data
 def load_climate_data():
     """Load and process climate data from JSON file."""
-    with open('climate_data.json', 'r') as f:
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    with open(os.path.join(script_dir, 'climate_data.json'), 'r') as f:
         data = json.load(f)
     
     # Extract climate data
@@ -101,8 +103,10 @@ def load_climate_data():
 def load_maritime_data():
     """Load and process maritime CO2 emissions data from CSV files."""
     try:
-        world_df = pd.read_csv('maritime_world_total.csv')
-        oecd_df = pd.read_csv('maritime_oecd_countries.csv')
+        # Get the directory where this script is located
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        world_df = pd.read_csv(os.path.join(script_dir, 'maritime_world_total.csv'))
+        oecd_df = pd.read_csv(os.path.join(script_dir, 'maritime_oecd_countries.csv'))
         
         # Convert TIME_PERIOD to year-month format and extract year
         world_df['Year'] = world_df['TIME_PERIOD'].str[:4].astype(int)
@@ -122,7 +126,8 @@ def load_maritime_data():
 def load_sea_level_data():
     """Load and process sea level data from CSV file."""
     try:
-        sea_level_df = pd.read_csv('sea_level_yearly.csv')
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        sea_level_df = pd.read_csv(os.path.join(script_dir, 'sea_level_yearly.csv'))
         return sea_level_df
     except Exception as e:
         st.error(f"❌ Error loading sea level data: {e}")
