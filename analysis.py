@@ -97,10 +97,44 @@ def load_climate_data():
         'BEL': 'Belgium', 'SWE': 'Sweden', 'NOR': 'Norway',
         'AUT': 'Austria', 'ARE': 'UAE', 'NGA': 'Nigeria',
         'ARG': 'Argentina', 'ZAF': 'South Africa', 'EGY': 'Egypt',
-        'UGA': 'Uganda', 'KEN': 'Kenya', 'TZA': 'Tanzania'
+        'UGA': 'Uganda', 'KEN': 'Kenya', 'TZA': 'Tanzania',
+        'COG': 'Republic of the Congo', 'COL': 'Colombia', 'CIV': "Côte d'Ivoire", 'CHL': 'Chile',
+        'AGO': 'Angola', 'ALB': 'Albania', 'AND': 'Andorra', 'ARM': 'Armenia', 'AUS': 'Australia',
+        'ATG': 'Antigua and Barbuda', 'AZE': 'Azerbaijan', 'BDI': 'Burundi', 'BEN': 'Benin', 'BFA': 'Burkina Faso',
+        'BGD': 'Bangladesh', 'BGR': 'Bulgaria', 'BHR': 'Bahrain', 'BHS': 'Bahamas', 'BIH': 'Bosnia and Herzegovina',
+        'BLR': 'Belarus', 'BLZ': 'Belize', 'BMU': 'Bermuda', 'BOL': 'Bolivia', 'BRB': 'Barbados',
+        'BRN': 'Brunei', 'BTN': 'Bhutan', 'BWA': 'Botswana', 'CAF': 'Central African Republic', 'CAN': 'Canada',
+        'CHE': 'Switzerland', 'CHN': 'China', 'CYP': 'Cyprus', 'CZE': 'Czechia', 'DNK': 'Denmark',
+        'DOM': 'Dominican Republic', 'DZA': 'Algeria', 'ECU': 'Ecuador', 'EST': 'Estonia', 'ETH': 'Ethiopia',
+        'FIN': 'Finland', 'FJI': 'Fiji', 'FRA': 'France', 'GAB': 'Gabon', 'GHA': 'Ghana',
+        'GRC': 'Greece', 'GRD': 'Grenada', 'GTM': 'Guatemala', 'GUY': 'Guyana', 'HND': 'Honduras',
+        'HRV': 'Croatia', 'HTI': 'Haiti', 'HUN': 'Hungary', 'IDN': 'Indonesia', 'IRL': 'Ireland',
+        'IRN': 'Iran', 'IRQ': 'Iraq', 'ISL': 'Iceland', 'ISR': 'Israel', 'JAM': 'Jamaica',
+        'JOR': 'Jordan', 'JPN': 'Japan', 'KAZ': 'Kazakhstan', 'KEN': 'Kenya', 'KGZ': 'Kyrgyzstan',
+        'KHM': 'Cambodia', 'KOR': 'South Korea', 'KWT': 'Kuwait', 'LAO': 'Laos', 'LBN': 'Lebanon',
+        'LBR': 'Liberia', 'LBY': 'Libya', 'LCA': 'Saint Lucia', 'LIE': 'Liechtenstein', 'LKA': 'Sri Lanka',
+        'LSO': 'Lesotho', 'LTU': 'Lithuania', 'LUX': 'Luxembourg', 'LVA': 'Latvia', 'MAR': 'Morocco',
+        'MDA': 'Moldova', 'MDG': 'Madagascar', 'MDV': 'Maldives', 'MEX': 'Mexico', 'MKD': 'North Macedonia',
+        'MLI': 'Mali', 'MLT': 'Malta', 'MMR': 'Myanmar', 'MNE': 'Montenegro', 'MNG': 'Mongolia',
+        'MOZ': 'Mozambique', 'MRT': 'Mauritania', 'MUS': 'Mauritius', 'MWI': 'Malawi', 'MYS': 'Malaysia',
+        'NAM': 'Namibia', 'NCL': 'New Caledonia', 'NER': 'Niger', 'NGA': 'Nigeria', 'NIC': 'Nicaragua',
+        'NLD': 'Netherlands', 'NOR': 'Norway', 'NPL': 'Nepal', 'NZL': 'New Zealand', 'OMN': 'Oman',
+        'PAK': 'Pakistan', 'PAN': 'Panama', 'PER': 'Peru', 'PHL': 'Philippines', 'PNG': 'Papua New Guinea',
+        'POL': 'Poland', 'PRT': 'Portugal', 'PRY': 'Paraguay', 'QAT': 'Qatar', 'ROU': 'Romania',
+        'RUS': 'Russia', 'RWA': 'Rwanda', 'SAU': 'Saudi Arabia', 'SDN': 'Sudan', 'SEN': 'Senegal',
+        'SGP': 'Singapore', 'SLB': 'Solomon Islands', 'SLE': 'Sierra Leone', 'SLV': 'El Salvador', 'SMR': 'San Marino',
+        'SOM': 'Somalia', 'SRB': 'Serbia', 'SSD': 'South Sudan', 'SUR': 'Suriname', 'SVK': 'Slovakia',
+        'SVN': 'Slovenia', 'SWE': 'Sweden', 'SWZ': 'Eswatini', 'SYC': 'Seychelles', 'SYR': 'Syria',
+        'TCD': 'Chad', 'TGO': 'Togo', 'THA': 'Thailand', 'TJK': 'Tajikistan', 'TKM': 'Turkmenistan',
+        'TLS': 'Timor-Leste', 'TON': 'Tonga', 'TTO': 'Trinidad and Tobago', 'TUN': 'Tunisia', 'TUR': 'Turkey',
+        'TWN': 'Taiwan', 'TZA': 'Tanzania', 'UGA': 'Uganda', 'UKR': 'Ukraine', 'URY': 'Uruguay',
+        'USA': 'United States', 'UZB': 'Uzbekistan', 'VEN': 'Venezuela', 'VNM': 'Vietnam', 'VUT': 'Vanuatu',
+        'WSM': 'Samoa', 'YEM': 'Yemen', 'ZAF': 'South Africa', 'ZMB': 'Zambia', 'ZWE': 'Zimbabwe'
     }
     
-    df['Country_Name'] = df['Country_Code'].map(country_names).fillna(df['Country_Code'])
+    df['Country_Name'] = df['Country_Code'].map(country_names)
+    # If any country names are still missing, replace with empty string (or optionally with 'Unknown')
+    df['Country_Name'] = df['Country_Name'].fillna('Unknown')
     
     return df
 
@@ -196,35 +230,98 @@ try:
         with col1:
             latest_year = global_avg['Year'].max()
             latest_temp = global_avg[global_avg['Year'] == latest_year]['Temperature'].values[0]
-            st.metric("Latest Year", latest_year)
+            st.markdown(f"""
+                <div style='text-align:center;'>
+                    <span style='font-size:1.1em;'>Latest Year</span><br>
+                    <span style='color:#ff7f0e; font-size:2em; font-weight:bold;'>{latest_year}</span>
+                </div>
+            """, unsafe_allow_html=True)
         
         with col2:
-            st.metric("Latest Avg Temp", f"{latest_temp:.2f}°C")
+            st.markdown(f"""
+                <div style='text-align:center;'>
+                    <span style='font-size:1.1em;'>Latest Avg Temp</span><br>
+                    <span style='color:#ff7f0e; font-size:2em; font-weight:bold;'>{latest_temp:.2f}°C</span>
+                </div>
+            """, unsafe_allow_html=True)
         
         with col3:
             earliest_temp = global_avg[global_avg['Year'] == global_avg['Year'].min()]['Temperature'].values[0]
             temp_change = latest_temp - earliest_temp
-            st.metric("Temperature Change", f"{temp_change:+.2f}°C", delta=f"{temp_change:+.2f}°C")
+            st.markdown(f"""
+                <div style='text-align:center;'>
+                    <span style='font-size:1.1em;'>Temperature Change</span><br>
+                    <span style='color:#ff7f0e; font-size:2em; font-weight:bold;'>{temp_change:+.2f}°C</span>
+                </div>
+            """, unsafe_allow_html=True)
         
         with col4:
             max_temp = df['Temperature'].max()
-            st.metric("Highest Recorded", f"{max_temp:.2f}°C")
+            st.markdown(f"""
+                <div style='text-align:center;'>
+                    <span style='font-size:1.1em;'>Highest Recorded</span><br>
+                    <span style='color:#ff7f0e; font-size:2em; font-weight:bold;'>{max_temp:.2f}°C</span>
+                </div>
+            """, unsafe_allow_html=True)
         
 
         
         # Global temperature trend
         # Removed redundant subheader for cleaner UI
         
-        fig = px.line(
-            global_avg, 
-            x='Year', 
-            y='Temperature',
-            title='Global Average Temperature Over Time',
-            labels={'Temperature': 'Temperature (°C)', 'Year': 'Year'}
-        )
-        fig.update_traces(line_color='#ff7f0e', line_width=2)
-        fig.update_layout(height=500)
-        st.plotly_chart(fig, width="stretch")
+        # Show global temperature trend and top 5 tables side by side
+            # Calculate average temperature by country for latest year
+            latest_year = global_avg['Year'].max()
+            year_data = df[df['Year'] == latest_year].copy()
+            country_avg = year_data.groupby('Country_Code')['Temperature'].mean().reset_index()
+            country_avg.columns = ['Country_Code', 'Avg_Temperature']
+            country_avg['Country_Name'] = country_avg['Country_Code'].map(dict(zip(df['Country_Code'], df['Country_Name'])))
+        col_trend, col_tables = st.columns([1, 1])
+        with col_trend:
+            fig = px.line(
+                global_avg, 
+                x='Year', 
+                y='Temperature',
+                title='Global Average Temperature Over Time',
+                labels={'Temperature': 'Temperature (°C)', 'Year': 'Year'}
+            )
+            fig.update_traces(line_color='#ff7f0e', line_width=2)
+            fig.update_layout(height=500)
+            fig.update_layout(
+                xaxis=dict(showline=False, zeroline=False, showgrid=False),
+                yaxis=dict(showline=False, zeroline=False, showgrid=False)
+            )
+            st.plotly_chart(fig, width="stretch")
+        with col_tables:
+            col_hot, col_cold = st.columns([1, 1])
+            with col_hot:
+                st.markdown("**🔥 Top 5 Hottest Countries**")
+                hottest_15 = country_avg.nlargest(5, 'Avg_Temperature')[['Country_Name', 'Country_Code', 'Avg_Temperature']].copy()
+                hottest_15['Avg_Temperature'] = hottest_15['Avg_Temperature'].round(2)
+                def style_temp(val):
+                    try:
+                        v = val if not hasattr(val, 'item') else val.item()
+                        return f"<span style='color:#313695;'>{v:.2f}</span>" if v < 0 else f"<span style='color:#ff7f0e;'>{v:.2f}</span>"
+                    except Exception:
+                        return f"<span style='color:#ff7f0e;'>{val}</span>"
+                hottest_15['Display_Name'] = hottest_15.apply(lambda row: row['Country_Code'] if row['Country_Name'] == 'Unknown' else row['Country_Name'], axis=1)
+                hottest_15['Styled_Temperature'] = hottest_15['Avg_Temperature'].apply(style_temp)
+                hottest_15 = hottest_15[['Display_Name', 'Styled_Temperature']]
+                hottest_15.columns = ['Country', 'Temperature (°C)']
+                hottest_15 = hottest_15.reset_index(drop=True)
+                hottest_15.index = hottest_15.index + 1
+                st.markdown(hottest_15.to_html(escape=False, index=False), unsafe_allow_html=True)
+            with col_cold:
+                st.markdown("**❄️ Top 5 Coldest Countries**")
+                coldest_15 = country_avg.nsmallest(5, 'Avg_Temperature')[['Country_Name', 'Country_Code', 'Avg_Temperature']].copy()
+                coldest_15['Avg_Temperature'] = coldest_15['Avg_Temperature'].round(2)
+                coldest_15['Display_Name'] = coldest_15.apply(lambda row: row['Country_Code'] if row['Country_Name'] == 'Unknown' else row['Country_Name'], axis=1)
+                coldest_15['Styled_Temperature'] = coldest_15['Avg_Temperature'].apply(style_temp)
+                coldest_15 = coldest_15[['Display_Name', 'Styled_Temperature']]
+                coldest_15.columns = ['Country', 'Temperature (°C)']
+                coldest_15 = coldest_15.reset_index(drop=True)
+                coldest_15.index = coldest_15.index + 1
+                st.markdown(coldest_15.to_html(escape=False, index=False), unsafe_allow_html=True)
         
         with tab2:
             # Removed redundant subheader for cleaner UI
@@ -279,19 +376,47 @@ try:
         
         with col1:
             global_avg_year = country_avg['Avg_Temperature'].mean()
-            st.metric("Global Average", f"{global_avg_year:.2f}°C")
+            st.markdown(f"""
+                <div style='text-align:center;'>
+                    <span style='font-size:1.1em;'>Global Average</span><br>
+                    <span style='color:#ff7f0e; font-size:2em; font-weight:bold;'>{global_avg_year:.2f}°C</span>
+                </div>
+            """, unsafe_allow_html=True)
         
         with col2:
             hottest_country = country_avg.loc[country_avg['Avg_Temperature'].idxmax()]
-            st.metric("Hottest", f"{hottest_country['Country_Code']}: {hottest_country['Avg_Temperature']:.1f}°C")
+            st.markdown(f"""
+                <div style='text-align:center;'>
+                    <span style='font-size:1.1em;'>Hottest</span><br>
+                    <span style='color:#ff7f0e; font-size:2em; font-weight:bold;'>{hottest_country['Country_Name']}: {hottest_country['Avg_Temperature']:.1f}°C</span>
+                </div>
+            """, unsafe_allow_html=True)
         
         with col3:
             coldest_country = country_avg.loc[country_avg['Avg_Temperature'].idxmin()]
-            st.metric("Coldest", f"{coldest_country['Country_Code']}: {coldest_country['Avg_Temperature']:.1f}°C")
+            display_name = coldest_country['Country_Code'] if str(coldest_country['Country_Name']) == 'Unknown' else coldest_country['Country_Name']
+            temp_value = coldest_country['Avg_Temperature']
+            # Ensure temp_value is a float, not a Series
+            if isinstance(temp_value, pd.Series) or hasattr(temp_value, 'values'):
+                temp_value_float = float(temp_value.values[0])
+            else:
+                temp_value_float = float(temp_value)
+            temp_color = '#313695' if temp_value_float < 0 else '#ff7f0e'
+            st.markdown(f"""
+                <div style='text-align:center;'>
+                    <span style='font-size:1.1em;'>Coldest</span><br>
+                    <span style='color:{temp_color}; font-size:2em; font-weight:bold;'>{display_name}: {temp_value:.1f}°C</span>
+                </div>
+            """, unsafe_allow_html=True)
         
         with col4:
             temp_range = country_avg['Avg_Temperature'].max() - country_avg['Avg_Temperature'].min()
-            st.metric("Temperature Range", f"{temp_range:.1f}°C")
+            st.markdown(f"""
+                <div style='text-align:center;'>
+                    <span style='font-size:1.1em;'>Temperature Range</span><br>
+                    <span style='color:#ff7f0e; font-size:2em; font-weight:bold;'>{temp_range:.1f}°C</span>
+                </div>
+            """, unsafe_allow_html=True)
         
 
         
@@ -308,7 +433,7 @@ try:
             color='Avg_Temperature',
             hover_name='Country_Name',
             hover_data={
-                'Country_Code': True, 
+                'Country_Name': True,
                 'Avg_Temperature': ':.2f',
             },
             color_continuous_scale=[
@@ -332,7 +457,6 @@ try:
                 center=continent_config['center'],
                 showframe=True,
                 showcoastlines=True,
-                coastlinecolor="RebeccaPurple",
                 showland=True,
                 landcolor="rgb(243, 243, 243)",
                 showcountries=True,
@@ -345,7 +469,7 @@ try:
                 title="Temperature (°C)",
                 thickness=20,
                 len=0.7,
-                x=1.02
+                x=0.0  # Move legend to left side
             )
         )
         
@@ -365,29 +489,41 @@ try:
         
         with col1:
             # Country selector for detailed view
-            available_countries = sorted(df['Country_Code'].unique())
-            selected_country_detail = st.selectbox(
+            available_country_names = sorted(df['Country_Name'].unique())
+            selected_country_name = st.selectbox(
                 "Select a country for detailed analysis",
-                available_countries,
-                index=available_countries.index('USA') if 'USA' in available_countries else 0,
+                available_country_names,
+                index=available_country_names.index('United States') if 'United States' in available_country_names else 0,
                 key='map_country_selector'
             )
-            
             # Get country data for all years
-            country_all_years = df[df['Country_Code'] == selected_country_detail].sort_values('Year')
-            country_name_detail = country_all_years['Country_Name'].iloc[0]
-            
-            st.info(f"📍 **{country_name_detail}** ({selected_country_detail})")
-            
+            country_all_years = df[df['Country_Name'] == selected_country_name].sort_values('Year')
+            country_name_detail = selected_country_name
+            st.info(f"📍 **{country_name_detail}**")
+
             # Current year stats
-            current_temp = country_avg[country_avg['Country_Code'] == selected_country_detail]['Avg_Temperature'].values
+            current_temp = country_avg[country_avg['Country_Name'] == selected_country_name]['Avg_Temperature'].values
             if len(current_temp) > 0:
-                st.metric(f"Temperature in {selected_year}", f"{current_temp[0]:.2f}°C")
-            
-            # Historical stats
-            st.metric("All-time Average", f"{country_all_years['Temperature'].mean():.2f}°C")
-            st.metric("Highest Ever", f"{country_all_years['Temperature'].max():.2f}°C")
-            st.metric("Lowest Ever", f"{country_all_years['Temperature'].min():.2f}°C")
+                st.markdown(f"""
+                <div style='display: flex; justify-content: center; gap: 2rem;'>
+                    <div style='text-align:center;'>
+                        <span style='font-size:1.1em;'>Temperature in {selected_year}</span><br>
+                        <span style='color:#ff7f0e; font-size:2em; font-weight:bold;'>{current_temp[0]:.2f}°C</span>
+                    </div>
+                    <div style='text-align:center;'>
+                        <span style='font-size:1.1em;'>All-time Average</span><br>
+                        <span style='color:#ff7f0e; font-size:2em; font-weight:bold;'>{country_all_years['Temperature'].mean():.2f}°C</span>
+                    </div>
+                    <div style='text-align:center;'>
+                        <span style='font-size:1.1em;'>Highest Ever</span><br>
+                        <span style='color:#ff7f0e; font-size:2em; font-weight:bold;'>{country_all_years['Temperature'].max():.2f}°C</span>
+                    </div>
+                    <div style='text-align:center;'>
+                        <span style='font-size:1.1em;'>Lowest Ever</span><br>
+                        <span style='color:#ff7f0e; font-size:2em; font-weight:bold;'>{country_all_years['Temperature'].min():.2f}°C</span>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
         
         with col2:
             # Historical trend for selected country
@@ -396,9 +532,10 @@ try:
                 x='Year',
                 y='Temperature',
                 title=f'Historical Temperature Trend: {country_name_detail}',
-                labels={'Temperature': 'Temperature (°C)', 'Year': 'Year'}
+                labels={'Temperature': 'Temperature (°C)', 'Year': 'Year', 'Country_Name': 'Country'}
             )
-            
+            # Always make the selected country line orange
+            fig_country.update_traces(line_color='#ff7f0e', line_width=2)
             # Add current year marker
             current_year_data = country_all_years[country_all_years['Year'] == selected_year]
             if not current_year_data.empty:
@@ -410,63 +547,41 @@ try:
                     name=f'{selected_year}',
                     showlegend=True
                 )
-            
-            fig_country.update_traces(line_color='#ff7f0e', line_width=2)
             fig_country.update_layout(height=400, hovermode='x unified')
+            fig_country.update_layout(
+                xaxis=dict(showline=False, zeroline=False, showgrid=False),
+                yaxis=dict(showline=False, zeroline=False, showgrid=False)
+            )
             st.plotly_chart(fig_country, config={"responsive": True})
         
         # Top/Bottom countries table
         # Removed redundant subheader for cleaner UI
         
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("**🔥 Top 15 Hottest Countries**")
-            hottest_15 = country_avg.nlargest(15, 'Avg_Temperature')[['Country_Name', 'Avg_Temperature']].copy()
-            hottest_15['Avg_Temperature'] = hottest_15['Avg_Temperature'].round(2)
-            hottest_15.columns = ['Country', 'Temperature (°C)']
-            hottest_15 = hottest_15.reset_index(drop=True)
-            hottest_15.index = hottest_15.index + 1
-            st.dataframe(hottest_15, width="stretch")
-        
-        with col2:
-            st.markdown("**❄️ Top 15 Coldest Countries**")
-            coldest_15 = country_avg.nsmallest(15, 'Avg_Temperature')[['Country_Name', 'Avg_Temperature']].copy()
-            coldest_15['Avg_Temperature'] = coldest_15['Avg_Temperature'].round(2)
-            coldest_15.columns = ['Country', 'Temperature (°C)']
-            coldest_15 = coldest_15.reset_index(drop=True)
-            coldest_15.index = coldest_15.index + 1
-            st.dataframe(coldest_15, width="stretch")
-        
         with tab3:
             # Removed redundant subheader for cleaner UI
             
             # Country selector
-            available_countries = sorted(df['Country_Code'].unique())
-            
+            # Filter out any country names that are actually codes (length 3, all uppercase)
+            available_country_names = sorted([name for name in df['Country_Name'].unique() if not (isinstance(name, str) and len(name) == 3 and name.isupper())])
             col1, col2 = st.columns([2, 1])
-            
             with col1:
-                selected_country = st.selectbox(
+                selected_country_name = st.selectbox(
                     "Select a Country",
-                    available_countries,
-                    index=available_countries.index('USA') if 'USA' in available_countries else 0
+                    available_country_names,
+                    index=available_country_names.index('United States') if 'United States' in available_country_names else 0
                 )
-        
-        with col2:
-            country_name = df[df['Country_Code'] == selected_country]['Country_Name'].iloc[0]
-            st.info(f"📍 **{country_name}**")
+            with col2:
+                st.info(f"📍 **{selected_country_name}**")
         
             # ...existing code...
         with col2:
             # Removed redundant subheader for cleaner UI
-            coldest = df.groupby('Country_Code')['Temperature'].mean().nsmallest(10).reset_index()
-            coldest['Country'] = coldest['Country_Code'].map(
-                dict(zip(df['Country_Code'], df['Country_Name']))
-            )
+            coldest = df.groupby(['Country_Code', 'Country_Name'])['Temperature'].mean().reset_index().nsmallest(10, 'Temperature')
             coldest['Temperature'] = coldest['Temperature'].round(2)
+            # Replace 'Unknown' with the country code for display
+            coldest['Display_Name'] = coldest.apply(lambda row: row['Country_Code'] if row['Country_Name'] == 'Unknown' else row['Country_Name'], axis=1)
             st.dataframe(
-                coldest[['Country', 'Temperature']].rename(columns={'Temperature': 'Avg Temp (°C)'}),
+                coldest[['Display_Name', 'Temperature']].rename(columns={'Display_Name': 'Country', 'Temperature': 'Avg Temp (°C)'}),
                 width="stretch",
                 hide_index=True
             )
@@ -615,8 +730,8 @@ try:
                     
                 )
                 fig_monthly.update_layout(
-                    xaxis=dict(tickfont=dict(size=14)),
-                    yaxis=dict(title=None),
+                    xaxis=dict(tickfont=dict(size=14), showline=False, zeroline=False),
+                    yaxis=dict(title=None, showline=False, zeroline=False),
                     margin=dict(l=30, r=30, t=40, b=30),
                     showlegend=True
                 )
@@ -659,7 +774,7 @@ try:
                     textposition='outside'
                 )
                 fig_vessel.update_layout(
-                    xaxis=dict(tickfont=dict(size=14)),
+                    xaxis=dict(tickfont=dict(size=14), showline=False, zeroline=False),
                     yaxis=dict(
                         title=None,
                         showgrid=False,
