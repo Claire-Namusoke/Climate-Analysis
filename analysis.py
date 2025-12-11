@@ -357,26 +357,24 @@ try:
             st.plotly_chart(fig_country, config={"responsive": True})
         
         with tab2:
-            # Standalone year and continent filter for map visual
-            st.markdown("### Map Filters")
-            map_col1, map_col2 = st.columns([2, 2])
-            with map_col1:
+            # Compact year and continent filters above the map section
+            filter_col1, filter_col2, _ = st.columns([1, 1, 2])
+            with filter_col1:
                 selected_year = st.slider(
-                    "Select Year for Map",
+                    "Year",
                     min_value=2019,
                     max_value=2024,
                     value=2024,
                     step=1,
                     key="map_year_slider"
                 )
-            with map_col2:
+            with filter_col2:
                 selected_continent = st.selectbox(
-                    "Select Continent (World = All)",
+                    "Continent",
                     ["World", "Africa", "Asia", "Europe", "North America", "South America", "Oceania"],
                     index=0,
                     key="map_continent_select"
                 )
-            # Continent config for map
             continents = {
                 'World': {'scope': 'world', 'center': None},
                 'Africa': {'scope': 'africa', 'center': {'lat': 0, 'lon': 20}},
@@ -386,39 +384,28 @@ try:
                 'South America': {'scope': 'south america', 'center': {'lat': -15, 'lon': -60}},
                 'Oceania': {'scope': 'world', 'center': {'lat': -25, 'lon': 140}}
             }
-        
-        # Filter data for selected year
-        year_data = df[df['Year'] == selected_year].copy()
-        
-        # Calculate average temperature by country
-        country_avg = year_data.groupby('Country_Code')['Temperature'].mean().reset_index()
-        country_avg.columns = ['Country_Code', 'Avg_Temperature']
-        
-        # Add country names
 
-        country_avg['Country_Name'] = country_avg['Country_Code'].map(
-            dict(zip(df['Country_Code'], df['Country_Name']))
-        )
+            # Filter the main dataset for year and continent
+            if selected_continent == "World":
+                df_filtered = df[df['Year'] == selected_year].copy()
+            else:
+                df_filtered = df[(df['Year'] == selected_year) & (df['Continent'] == selected_continent)].copy()
 
-        # Key metrics for selected year (moved here for prominence)
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
+            # Calculate average temperature by country for filtered data
+            country_avg = df_filtered.groupby('Country_Code')['Temperature'].mean().reset_index()
+            country_avg.columns = ['Country_Code', 'Avg_Temperature']
+            country_avg['Country_Name'] = country_avg['Country_Code'].map(
+                dict(zip(df['Country_Code'], df['Country_Name']))
+            )
+        
+     
+
+        # Place metrics, map, and tables in a single row, map width matches both tables
+        metrics_col, map_col, hot_col, cold_col = st.columns([1, 2, 1, 1], gap="small")
+
+        with metrics_col:
             global_avg_year = country_avg['Avg_Temperature'].mean()
-            st.markdown(f"""
-                <div style='text-align:center;'>
-                    <span style='font-size:1.1em;'>Global Average</span><br>
-                    <span style='color:#ff7f0e; font-size:2em;'>{global_avg_year:.2f}°C</span>
-                </div>
-            """, unsafe_allow_html=True)
-        with col2:
             hottest_country = country_avg.loc[country_avg['Avg_Temperature'].idxmax()]
-            st.markdown(f"""
-                <div style='text-align:center;'>
-                    <span style='font-size:1.1em;'>Hottest</span><br>
-                    <span style='color:#ff7f0e; font-size:2em;'>{hottest_country['Country_Name']}: {hottest_country['Avg_Temperature']:.1f}°C</span>
-                </div>
-            """, unsafe_allow_html=True)
-        with col3:
             coldest_country = country_avg.loc[country_avg['Avg_Temperature'].idxmin()]
             display_name = coldest_country['Country_Code'] if str(coldest_country['Country_Name']) == 'Unknown' else coldest_country['Country_Name']
             temp_value = coldest_country['Avg_Temperature']
@@ -426,26 +413,29 @@ try:
                 temp_value_float = float(temp_value.values[0])
             else:
                 temp_value_float = float(temp_value)
-            temp_color = '#313695' if temp_value_float < 0 else '#ff7f0e'
-            st.markdown(f"""
-                <div style='text-align:center;'>
-                    <span style='font-size:1.1em;'>Coldest</span><br>
-                    <span style='color:{temp_color}; font-size:2em;'>{display_name}: {temp_value:.1f}°C</span>
-                </div>
-            """, unsafe_allow_html=True)
-        with col4:
+            temp_color = '#313695' if temp_value_float < 0 else "#593e27"
             temp_range = country_avg['Avg_Temperature'].max() - country_avg['Avg_Temperature'].min()
+
             st.markdown(f"""
-                <div style='text-align:center;'>
-                    <span style='font-size:1.1em;'>Temperature Range</span><br>
-                    <span style='color:#ff7f0e; font-size:2em;'>{temp_range:.1f}°C</span>
+                <div style='text-align:left; margin-bottom:0.2em;'>
+                    <span style='font-size:0.90em; color:#888;'>Global Avg</span><br>
+                    <span style='color:#ff7f0e; font-size:1em;'>{global_avg_year:.2f}°C</span>
+                </div>
+                <div style='text-align:left; margin-bottom:0.2em;'>
+                    <span style='font-size:0.90em; color:#888;'>Hottest</span><br>
+                    <span style='color:#ff7f0e; font-size:1em;'>{hottest_country['Country_Name']}: {hottest_country['Avg_Temperature']:.1f}°C</span>
+                </div>
+                <div style='text-align:left; margin-bottom:0.2em;'>
+                    <span style='font-size:0.90em; color:#888;'>Coldest</span><br>
+                    <span style='color:{temp_color}; font-size:1em;'>{display_name}: {temp_value:.1f}°C</span>
+                </div>
+                <div style='text-align:left; margin-bottom:0.2em;'>
+                    <span style='font-size:0.90em; color:#888;'>Temp Range</span><br>
+                    <span style='color:#ff7f0e; font-size:1em;'>{temp_range:.1f}°C</span>
                 </div>
             """, unsafe_allow_html=True)
 
-        # Place map and top 5 tables side by side
-        map_col, tables_col = st.columns([2, 1])
         with map_col:
-            # Create interactive choropleth map with drill-through
             continent_config = continents[selected_continent]
             fig = px.choropleth(
                 country_avg,
@@ -469,7 +459,7 @@ try:
                 labels={'Avg_Temperature': 'Temperature (°C)'}
             )
             fig.update_layout(
-                height=490,  # Reduced by 30%
+                height=420,
                 geo=dict(
                     scope=continent_config['scope'],
                     center=continent_config['center'],
@@ -482,59 +472,52 @@ try:
                     projection_type='natural earth',
                     bgcolor='rgba(0,0,0,0)',
                 ),
-                margin=dict(l=0, r=0, t=50, b=0),
+                margin=dict(l=0, r=0, t=30, b=0),
                 coloraxis_colorbar=dict(
-                    title="Temperature (°C)",
-                    thickness=14,  # Reduced by 30%
-                    len=0.5,  # Reduced by 30%
-                    x=1.02
+                    title="Temp (°C)",
+                    thickness=10,
+                    len=0.45,
+                    x=1.01
                 )
             )
             fig.update_traces(
                 marker_line_color='darkgray',
                 marker_line_width=0.5
             )
-            st.plotly_chart(fig, config={"responsive": True})
+            st.plotly_chart(fig, config={"responsive": True, "displayModeBar": False, "use_container_width": True})
 
-        with tables_col:
+        with hot_col:
             if country_avg.empty:
-                st.info("No data available for the selected year and continent.")
+                st.info("No data for year/continent.")
             else:
-                # Top 5 Hottest and Coldest Countries (by average temperature for selected year)
                 hottest = country_avg.nlargest(5, 'Avg_Temperature').copy()
-                coldest = country_avg.nsmallest(5, 'Avg_Temperature').copy()
-                # Replace 'Unknown' with the country code for display
                 hottest['Display_Name'] = hottest.apply(lambda row: row['Country_Code'] if row['Country_Name'] == 'Unknown' else row['Country_Name'], axis=1)
+                st.markdown("<div style='text-align:center; font-size:1em; font-weight:600; margin-bottom:0.2em;'>Top 5 Hottest</div>", unsafe_allow_html=True)
+                df_hot = hottest[['Display_Name', 'Avg_Temperature']].rename(columns={'Display_Name': 'Country', 'Avg_Temperature': 'Avg Temp (°C)'})
+                html = '<table style="width:100%; text-align:center; border-collapse:collapse; font-size:0.95em;">'
+                html += '<tr><th>Country</th><th>Avg Temp (°C)</th></tr>'
+                for _, row in df_hot.iterrows():
+                    color = '#313695' if row['Avg Temp (°C)'] < 0 else '#ff7f0e'
+                    html += f'<tr><td>{row["Country"]}</td><td style="color:{color};">{row["Avg Temp (°C)"]:.2f}</td></tr>'
+                html += '</table>'
+                st.markdown(html, unsafe_allow_html=True)
+
+        with cold_col:
+            if country_avg.empty:
+                st.info("No data for year/continent.")
+            else:
+                coldest = country_avg.nsmallest(5, 'Avg_Temperature').copy()
                 coldest['Display_Name'] = coldest.apply(lambda row: row['Country_Code'] if row['Country_Name'] == 'Unknown' else row['Country_Name'], axis=1)
+                st.markdown("<div style='text-align:center; font-size:1em; font-weight:600; margin-bottom:0.2em;'>Top 5 Coldest</div>", unsafe_allow_html=True)
+                df_cold = coldest[['Display_Name', 'Avg_Temperature']].rename(columns={'Display_Name': 'Country', 'Avg_Temperature': 'Avg Temp (°C)'})
+                html = '<table style="width:100%; text-align:center; border-collapse:collapse; font-size:0.95em;">'
+                html += '<tr><th>Country</th><th>Avg Temp (°C)</th></tr>'
+                for _, row in df_cold.iterrows():
+                    color = '#313695' if row['Avg Temp (°C)'] < 0 else '#ff7f0e'
+                    html += f'<tr><td>{row["Country"]}</td><td style="color:{color};">{row["Avg Temp (°C)"]:.2f}</td></tr>'
+                html += '</table>'
+                st.markdown(html, unsafe_allow_html=True)
 
-                col_hot, col_cold = st.columns(2)
-                with col_hot:
-                    st.markdown("<div style='text-align:center; font-size:1.1em; font-weight:bold;'>Top 5 Hottest Countries</div>", unsafe_allow_html=True)
-                    if hottest.empty:
-                        st.info("No data available for hottest countries.")
-                    else:
-                        df_hot = hottest[['Display_Name', 'Avg_Temperature']].rename(columns={'Display_Name': 'Country', 'Avg_Temperature': 'Avg Temp (°C)'})
-                        html = '<table style="width:100%; text-align:center; border-collapse:collapse;">'
-                        html += '<tr><th>Country</th><th>Avg Temp (°C)</th></tr>'
-                        for _, row in df_hot.iterrows():
-                            color = '#313695' if row['Avg Temp (°C)'] < 0 else '#ff7f0e'
-                            html += f'<tr><td>{row["Country"]}</td><td style="color:{color}; font-weight:bold;">{row["Avg Temp (°C)"]:.2f}</td></tr>'
-                        html += '</table>'
-                        st.markdown(html, unsafe_allow_html=True)
-                with col_cold:
-
-                    st.markdown("<div style='text-align:center; font-size:1.1em; font-weight:bold;'>Top 5 Coldest Countries</div>", unsafe_allow_html=True)
-                    if coldest.empty:
-                        st.info("No data available for coldest countries.")
-                    else:
-                        df_cold = coldest[['Display_Name', 'Avg_Temperature']].rename(columns={'Display_Name': 'Country', 'Avg_Temperature': 'Avg Temp (°C)'})
-                        html = '<table style="width:100%; text-align:center; border-collapse:collapse;">'
-                        html += '<tr><th>Country</th><th>Avg Temp (°C)</th></tr>'
-                        for _, row in df_cold.iterrows():
-                            color = '#313695' if row['Avg Temp (°C)'] < 0 else '#ff7f0e'
-                            html += f'<tr><td>{row["Country"]}</td><td style="color:{color}; font-weight:bold;">{row["Avg Temp (°C)"]:.2f}</td></tr>'
-                        html += '</table>'
-                        st.markdown(html, unsafe_allow_html=True)
         
 
         
