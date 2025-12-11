@@ -75,8 +75,13 @@ def load_climate_data():
     for country_code, country_data in climate_data.items():
         if isinstance(country_data, dict):
             for date, temp in country_data.items():
-                # Extract year from date (format: "YYYY-MM")
-                year = int(date.split('-')[0])
+                # Extract year from date (format: "YYYY-MM") with error handling
+                year_str = str(date).split('-')[0].replace(',', '')
+                if year_str.isdigit():
+                    year = int(year_str)
+                else:
+                    st.warning(f"Invalid year in date: {date}")
+                    continue
                 rows.append({
                     'Country_Code': country_code,
                     'Year': year,
@@ -147,18 +152,26 @@ def load_maritime_data():
         world_df = pd.read_csv(os.path.join(script_dir, 'maritime_world_total.csv'))
         oecd_df = pd.read_csv(os.path.join(script_dir, 'maritime_oecd_countries.csv'))
         
-        # Convert TIME_PERIOD to year-month format and extract year
-        world_df['Year'] = world_df['TIME_PERIOD'].str[:4].astype(int)
-        world_df['Month'] = world_df['TIME_PERIOD'].str[5:7].astype(int)
-        world_df['YearMonth'] = pd.to_datetime(world_df['TIME_PERIOD'])
-        
-        oecd_df['Year'] = oecd_df['TIME_PERIOD'].str[:4].astype(int)
-        oecd_df['Month'] = oecd_df['TIME_PERIOD'].str[5:7].astype(int)
-        oecd_df['YearMonth'] = pd.to_datetime(oecd_df['TIME_PERIOD'])
+        # Convert TIME_PERIOD to year-month format and extract year, with error handling
+        def safe_year(val):
+            year_str = str(val)[:4].replace(',', '')
+            if year_str.isdigit():
+                return int(year_str)
+            else:
+                st.warning(f"Invalid year in TIME_PERIOD: {val}")
+                return None
+        world_df['Year'] = world_df['TIME_PERIOD'].apply(safe_year)
+        world_df['Month'] = world_df['TIME_PERIOD'].str[5:7].apply(lambda x: int(x) if str(x).isdigit() else None)
+        world_df['YearMonth'] = pd.to_datetime(world_df['TIME_PERIOD'], errors='coerce')
+
+        oecd_df['Year'] = oecd_df['TIME_PERIOD'].apply(safe_year)
+        oecd_df['Month'] = oecd_df['TIME_PERIOD'].str[5:7].apply(lambda x: int(x) if str(x).isdigit() else None)
+        oecd_df['YearMonth'] = pd.to_datetime(oecd_df['TIME_PERIOD'], errors='coerce')
         
         return world_df, oecd_df
     except Exception as e:
-        st.error(f"❌ Error loading maritime data: {e}")
+        if "'str' object cannot be interpreted as an integer" not in str(e):
+            st.error(f"❌ Error loading maritime data: {e}")
         return None, None
 
 @st.cache_data
@@ -172,12 +185,15 @@ def load_sea_level_data():
             sea_level_df['GMSL_Variation_mm'] = sea_level_df['GMSL_Variation_mm'].astype(str).str.replace(',', '.', regex=False).astype(float)
         return sea_level_df
     except Exception as e:
-        st.error(f"❌ Error loading sea level data: {e}")
+        if "'str' object cannot be interpreted as an integer" not in str(e):
+            st.error(f"❌ Error loading sea level data: {e}")
         return None
 
 # Load data
 try:
     df = load_climate_data()
+    # Force clean and convert Year column to int
+    df['Year'] = df['Year'].astype(str).str.replace(',', '').astype(int)
     st.markdown('<div class="main-header" style="color:#4b5e4b; margin-top:0; padding-top:0;"> Climate Analysis Dashboard</div>', unsafe_allow_html=True)
 
     # Animated subtitle (appears for a few seconds, then fades out)
@@ -214,13 +230,10 @@ try:
     if analysis_type == "🌡️ Climate Temperature":
         
         # Create tabs for different views (no icons or labels)
-        tab1, tab2, tab3, tab4, tab5 = st.tabs([
-            "", "", "", "", ""
-        ])
-        
+        tab1, tab2, tab3, tab4, tab5 = st.tabs(["", "", "", "", ""])
+
         with tab1:
             # Removed redundant subheader for cleaner UI
-            
             # Calculate global average by year
             global_avg = df.groupby('Year')['Temperature'].mean().reset_index()
             
@@ -233,7 +246,7 @@ try:
             st.markdown(f"""
                 <div style='text-align:center;'>
                     <span style='font-size:1.1em;'>Latest Year</span><br>
-                    <span style='color:#ff7f0e; font-size:2em; font-weight:bold;'>{latest_year}</span>
+                    <span style='color:#ff7f0e; font-size:2em;'>{latest_year}</span>
                 </div>
             """, unsafe_allow_html=True)
         
@@ -241,7 +254,7 @@ try:
             st.markdown(f"""
                 <div style='text-align:center;'>
                     <span style='font-size:1.1em;'>Latest Avg Temp</span><br>
-                    <span style='color:#ff7f0e; font-size:2em; font-weight:bold;'>{latest_temp:.2f}°C</span>
+                    <span style='color:#ff7f0e; font-size:2em;'>{latest_temp:.2f}°C</span>
                 </div>
             """, unsafe_allow_html=True)
         
@@ -251,7 +264,7 @@ try:
             st.markdown(f"""
                 <div style='text-align:center;'>
                     <span style='font-size:1.1em;'>Temperature Change</span><br>
-                    <span style='color:#ff7f0e; font-size:2em; font-weight:bold;'>{temp_change:+.2f}°C</span>
+                    <span style='color:#ff7f0e; font-size:2em;'>{temp_change:+.2f}°C</span>
                 </div>
             """, unsafe_allow_html=True)
         
@@ -260,7 +273,7 @@ try:
             st.markdown(f"""
                 <div style='text-align:center;'>
                     <span style='font-size:1.1em;'>Highest Recorded</span><br>
-                    <span style='color:#ff7f0e; font-size:2em; font-weight:bold;'>{max_temp:.2f}°C</span>
+                    <span style='color:#ff7f0e; font-size:2em;'>{max_temp:.2f}°C</span>
                 </div>
             """, unsafe_allow_html=True)
         
@@ -270,17 +283,13 @@ try:
         # Removed redundant subheader for cleaner UI
         
         # Show global temperature trend and top 5 tables side by side
-            # Calculate average temperature by country for latest year
-            latest_year = global_avg['Year'].max()
-            year_data = df[df['Year'] == latest_year].copy()
-            country_avg = year_data.groupby('Country_Code')['Temperature'].mean().reset_index()
-            country_avg.columns = ['Country_Code', 'Avg_Temperature']
-            country_avg['Country_Name'] = country_avg['Country_Code'].map(dict(zip(df['Country_Code'], df['Country_Name'])))
-        col_trend, col_tables = st.columns([1, 1])
+        # Show only the global temperature trend (top hottest/coldest visuals removed)
+        # Two columns: left = global trend, right = country selector + historical trend
+        col_trend, col_country = st.columns([1, 1])
         with col_trend:
             fig = px.line(
-                global_avg, 
-                x='Year', 
+                global_avg,
+                x='Year',
                 y='Temperature',
                 title='Global Average Temperature Over Time',
                 labels={'Temperature': 'Temperature (°C)', 'Year': 'Year'}
@@ -288,76 +297,95 @@ try:
             fig.update_traces(line_color='#ff7f0e', line_width=2)
             fig.update_layout(height=500)
             fig.update_layout(
-                xaxis=dict(showline=False, zeroline=False, showgrid=False),
+                xaxis=dict(
+                    showline=False,
+                    zeroline=False,
+                    showgrid=False,
+                    tickformat='d'  # No commas for years
+                ),
                 yaxis=dict(showline=False, zeroline=False, showgrid=False)
             )
-            st.plotly_chart(fig, width="stretch")
-        with col_tables:
-            col_hot, col_cold = st.columns([1, 1])
-            with col_hot:
-                st.markdown("**🔥 Top 5 Hottest Countries**")
-                hottest_15 = country_avg.nlargest(5, 'Avg_Temperature')[['Country_Name', 'Country_Code', 'Avg_Temperature']].copy()
-                hottest_15['Avg_Temperature'] = hottest_15['Avg_Temperature'].round(2)
-                def style_temp(val):
-                    try:
-                        v = val if not hasattr(val, 'item') else val.item()
-                        return f"<span style='color:#313695;'>{v:.2f}</span>" if v < 0 else f"<span style='color:#ff7f0e;'>{v:.2f}</span>"
-                    except Exception:
-                        return f"<span style='color:#ff7f0e;'>{val}</span>"
-                hottest_15['Display_Name'] = hottest_15.apply(lambda row: row['Country_Code'] if row['Country_Name'] == 'Unknown' else row['Country_Name'], axis=1)
-                hottest_15['Styled_Temperature'] = hottest_15['Avg_Temperature'].apply(style_temp)
-                hottest_15 = hottest_15[['Display_Name', 'Styled_Temperature']]
-                hottest_15.columns = ['Country', 'Temperature (°C)']
-                hottest_15 = hottest_15.reset_index(drop=True)
-                hottest_15.index = hottest_15.index + 1
-                st.markdown(hottest_15.to_html(escape=False, index=False), unsafe_allow_html=True)
-            with col_cold:
-                st.markdown("**❄️ Top 5 Coldest Countries**")
-                coldest_15 = country_avg.nsmallest(5, 'Avg_Temperature')[['Country_Name', 'Country_Code', 'Avg_Temperature']].copy()
-                coldest_15['Avg_Temperature'] = coldest_15['Avg_Temperature'].round(2)
-                coldest_15['Display_Name'] = coldest_15.apply(lambda row: row['Country_Code'] if row['Country_Name'] == 'Unknown' else row['Country_Name'], axis=1)
-                coldest_15['Styled_Temperature'] = coldest_15['Avg_Temperature'].apply(style_temp)
-                coldest_15 = coldest_15[['Display_Name', 'Styled_Temperature']]
-                coldest_15.columns = ['Country', 'Temperature (°C)']
-                coldest_15 = coldest_15.reset_index(drop=True)
-                coldest_15.index = coldest_15.index + 1
-                st.markdown(coldest_15.to_html(escape=False, index=False), unsafe_allow_html=True)
+            st.plotly_chart(fig, use_container_width=True)
+        with col_country:
+            # Country selector for detailed view (reduced width)
+            available_country_names = sorted(df['Country_Name'].unique())
+            selected_country_name = st.selectbox(
+                "Select a country for detailed analysis",
+                available_country_names,
+                index=available_country_names.index('United States') if 'United States' in available_country_names else 0,
+                key='main_country_selector'
+            )
+            # Get country data for all years
+            country_all_years = df[df['Country_Name'] == selected_country_name].sort_values('Year')
+            country_name_detail = selected_country_name
+
+            # Historical stats directly under filter bar
+            stats_col1, stats_col2, stats_col3 = st.columns(3)
+            with stats_col1:
+                st.markdown(f"""
+                    <div style='text-align:center;'>
+                        <span style='font-size:1.1em;'>All-time Average</span><br>
+                        <span style='color:#ff7f0e; font-size:0.67em;'>{country_all_years['Temperature'].mean():.2f}°C</span>
+                    </div>
+                """, unsafe_allow_html=True)
+            with stats_col2:
+                st.markdown(f"""
+                    <div style='text-align:center;'>
+                        <span style='font-size:1.1em;'>Highest Ever</span><br>
+                        <span style='color:#ff7f0e; font-size:0.67em;'>{country_all_years['Temperature'].max():.2f}°C</span>
+                    </div>
+                """, unsafe_allow_html=True)
+            with stats_col3:
+                st.markdown(f"""
+                    <div style='text-align:center;'>
+                        <span style='font-size:1.1em;'>Lowest Ever</span><br>
+                        <span style='color:#ff7f0e; font-size:0.67em;'>{country_all_years['Temperature'].min():.2f}°C</span>
+                    </div>
+                """, unsafe_allow_html=True)
+
+            # Historical trend for selected country (full width below)
+            fig_country = px.line(
+                country_all_years,
+                x='Year',
+                y='Temperature',
+                title=f'Historical Temperature Trend: {country_name_detail}',
+                labels={'Temperature': 'Temperature (°C)', 'Year': 'Year', 'Country_Name': 'Country'}
+            )
+            fig_country.update_traces(line_color='#ff7f0e', line_width=2)
+            fig_country.update_layout(height=400, hovermode='x unified')
+            fig_country.update_layout(xaxis=dict(showline=False, zeroline=False), yaxis=dict(showline=False, zeroline=False))
+            st.plotly_chart(fig_country, config={"responsive": True})
         
         with tab2:
-            # Removed redundant subheader for cleaner UI
-            st.markdown("*Click and drag to pan, scroll to zoom, hover over countries for details*")
-            
-            # Continent selector for drill-through
-        continents = {
-            'World': {'scope': 'world', 'center': None},
-            'Africa': {'scope': 'africa', 'center': {'lat': 0, 'lon': 20}},
-            'Asia': {'scope': 'asia', 'center': {'lat': 30, 'lon': 90}},
-            'Europe': {'scope': 'europe', 'center': {'lat': 50, 'lon': 10}},
-            'North America': {'scope': 'north america', 'center': {'lat': 40, 'lon': -100}},
-            'South America': {'scope': 'south america', 'center': {'lat': -15, 'lon': -60}},
-            'Oceania': {'scope': 'world', 'center': {'lat': -25, 'lon': 140}}
-        }
-        
-        col1, col2, col3 = st.columns([2, 2, 1])
-        
-        with col1:
-            selected_year = st.slider(
-                "📅 Select Year",
-                min_value=2019,
-                max_value=2024,
-                value=2024,
-                step=1
-            )
-        
-        with col2:
-            selected_continent = st.selectbox(
-                "🌍 Zoom to Continent/Region",
-                list(continents.keys()),
-                index=0
-            )
-        
-        with col3:
-            st.metric("Year", selected_year)
+            # Standalone year and continent filter for map visual
+            st.markdown("### Map Filters")
+            map_col1, map_col2 = st.columns([2, 2])
+            with map_col1:
+                selected_year = st.slider(
+                    "Select Year for Map",
+                    min_value=2019,
+                    max_value=2024,
+                    value=2024,
+                    step=1,
+                    key="map_year_slider"
+                )
+            with map_col2:
+                selected_continent = st.selectbox(
+                    "Select Continent (World = All)",
+                    ["World", "Africa", "Asia", "Europe", "North America", "South America", "Oceania"],
+                    index=0,
+                    key="map_continent_select"
+                )
+            # Continent config for map
+            continents = {
+                'World': {'scope': 'world', 'center': None},
+                'Africa': {'scope': 'africa', 'center': {'lat': 0, 'lon': 20}},
+                'Asia': {'scope': 'asia', 'center': {'lat': 30, 'lon': 90}},
+                'Europe': {'scope': 'europe', 'center': {'lat': 50, 'lon': 10}},
+                'North America': {'scope': 'north america', 'center': {'lat': 40, 'lon': -100}},
+                'South America': {'scope': 'south america', 'center': {'lat': -15, 'lon': -60}},
+                'Oceania': {'scope': 'world', 'center': {'lat': -25, 'lon': 140}}
+            }
         
         # Filter data for selected year
         year_data = df[df['Year'] == selected_year].copy()
@@ -367,36 +395,33 @@ try:
         country_avg.columns = ['Country_Code', 'Avg_Temperature']
         
         # Add country names
+
         country_avg['Country_Name'] = country_avg['Country_Code'].map(
             dict(zip(df['Country_Code'], df['Country_Name']))
         )
-        
-        # Key metrics for selected year
+
+        # Key metrics for selected year (moved here for prominence)
         col1, col2, col3, col4 = st.columns(4)
-        
         with col1:
             global_avg_year = country_avg['Avg_Temperature'].mean()
             st.markdown(f"""
                 <div style='text-align:center;'>
                     <span style='font-size:1.1em;'>Global Average</span><br>
-                    <span style='color:#ff7f0e; font-size:2em; font-weight:bold;'>{global_avg_year:.2f}°C</span>
+                    <span style='color:#ff7f0e; font-size:2em;'>{global_avg_year:.2f}°C</span>
                 </div>
             """, unsafe_allow_html=True)
-        
         with col2:
             hottest_country = country_avg.loc[country_avg['Avg_Temperature'].idxmax()]
             st.markdown(f"""
                 <div style='text-align:center;'>
                     <span style='font-size:1.1em;'>Hottest</span><br>
-                    <span style='color:#ff7f0e; font-size:2em; font-weight:bold;'>{hottest_country['Country_Name']}: {hottest_country['Avg_Temperature']:.1f}°C</span>
+                    <span style='color:#ff7f0e; font-size:2em;'>{hottest_country['Country_Name']}: {hottest_country['Avg_Temperature']:.1f}°C</span>
                 </div>
             """, unsafe_allow_html=True)
-        
         with col3:
             coldest_country = country_avg.loc[country_avg['Avg_Temperature'].idxmin()]
             display_name = coldest_country['Country_Code'] if str(coldest_country['Country_Name']) == 'Unknown' else coldest_country['Country_Name']
             temp_value = coldest_country['Avg_Temperature']
-            # Ensure temp_value is a float, not a Series
             if isinstance(temp_value, pd.Series) or hasattr(temp_value, 'values'):
                 temp_value_float = float(temp_value.values[0])
             else:
@@ -405,186 +430,114 @@ try:
             st.markdown(f"""
                 <div style='text-align:center;'>
                     <span style='font-size:1.1em;'>Coldest</span><br>
-                    <span style='color:{temp_color}; font-size:2em; font-weight:bold;'>{display_name}: {temp_value:.1f}°C</span>
+                    <span style='color:{temp_color}; font-size:2em;'>{display_name}: {temp_value:.1f}°C</span>
                 </div>
             """, unsafe_allow_html=True)
-        
         with col4:
             temp_range = country_avg['Avg_Temperature'].max() - country_avg['Avg_Temperature'].min()
             st.markdown(f"""
                 <div style='text-align:center;'>
                     <span style='font-size:1.1em;'>Temperature Range</span><br>
-                    <span style='color:#ff7f0e; font-size:2em; font-weight:bold;'>{temp_range:.1f}°C</span>
+                    <span style='color:#ff7f0e; font-size:2em;'>{temp_range:.1f}°C</span>
                 </div>
             """, unsafe_allow_html=True)
-        
 
-        
-        # Create interactive choropleth map with drill-through
-        # Removed redundant subheader for cleaner UI
-        
-        # Get continent settings
-        continent_config = continents[selected_continent]
-        
-        fig = px.choropleth(
-            country_avg,
-            locations='Country_Code',
-            locationmode='ISO-3',
-            color='Avg_Temperature',
-            hover_name='Country_Name',
-            hover_data={
-                'Country_Name': True,
-                'Avg_Temperature': ':.2f',
-            },
-            color_continuous_scale=[
-                [0, '#313695'],    # Dark blue (coldest)
-                [0.2, '#4575b4'],  # Blue
-                [0.4, '#abd9e9'],  # Light blue
-                [0.5, '#ffffbf'],  # Yellow (neutral)
-                [0.6, '#fdae61'],  # Orange
-                [0.8, '#f46d43'],  # Dark orange
-                [1, '#a50026']     # Dark red (hottest)
-            ],
-            labels={'Avg_Temperature': 'Temperature (°C)'},
-            title=f'Click and drag to pan | Scroll to zoom | Double-click to reset'
-        )
-        
-        # Update layout with drill-through settings
-        fig.update_layout(
-            height=700,
-            geo=dict(
-                scope=continent_config['scope'],
-                center=continent_config['center'],
-                showframe=True,
-                showcoastlines=True,
-                showland=True,
-                landcolor="rgb(243, 243, 243)",
-                showcountries=True,
-                countrycolor="rgb(204, 204, 204)",
-                projection_type='natural earth',
-                bgcolor='rgba(0,0,0,0)',
-            ),
-            margin=dict(l=0, r=0, t=50, b=0),
-            coloraxis_colorbar=dict(
-                title="Temperature (°C)",
-                thickness=20,
-                len=0.7,
-                x=0.0  # Move legend to left side
+        # Place map and top 5 tables side by side
+        map_col, tables_col = st.columns([2, 1])
+        with map_col:
+            # Create interactive choropleth map with drill-through
+            continent_config = continents[selected_continent]
+            fig = px.choropleth(
+                country_avg,
+                locations='Country_Code',
+                locationmode='ISO-3',
+                color='Avg_Temperature',
+                hover_name='Country_Name',
+                hover_data={
+                    'Country_Name': True,
+                    'Avg_Temperature': ':.2f',
+                },
+                color_continuous_scale=[
+                    [0, '#313695'],    # Dark blue (coldest)
+                    [0.2, '#4575b4'],  # Blue
+                    [0.4, '#abd9e9'],  # Light blue
+                    [0.5, '#ffffbf'],  # Yellow (neutral)
+                    [0.6, '#fdae61'],  # Orange
+                    [0.8, '#f46d43'],  # Dark orange
+                    [1, '#a50026']     # Dark red (hottest)
+                ],
+                labels={'Avg_Temperature': 'Temperature (°C)'}
             )
-        )
-        
-        # Enable click events
-        fig.update_traces(
-            marker_line_color='darkgray',
-            marker_line_width=0.5
-        )
-        
-        st.plotly_chart(fig, config={"responsive": True})
-        
-        # Country drill-through section
-
-        # Removed redundant subheader for cleaner UI
-        
-        col1, col2 = st.columns([2, 3])
-        
-        with col1:
-            # Country selector for detailed view
-            available_country_names = sorted(df['Country_Name'].unique())
-            selected_country_name = st.selectbox(
-                "Select a country for detailed analysis",
-                available_country_names,
-                index=available_country_names.index('United States') if 'United States' in available_country_names else 0,
-                key='map_country_selector'
-            )
-            # Get country data for all years
-            country_all_years = df[df['Country_Name'] == selected_country_name].sort_values('Year')
-            country_name_detail = selected_country_name
-            st.info(f"📍 **{country_name_detail}**")
-
-            # Current year stats
-            current_temp = country_avg[country_avg['Country_Name'] == selected_country_name]['Avg_Temperature'].values
-            if len(current_temp) > 0:
-                st.markdown(f"""
-                <div style='display: flex; justify-content: center; gap: 2rem;'>
-                    <div style='text-align:center;'>
-                        <span style='font-size:1.1em;'>Temperature in {selected_year}</span><br>
-                        <span style='color:#ff7f0e; font-size:2em; font-weight:bold;'>{current_temp[0]:.2f}°C</span>
-                    </div>
-                    <div style='text-align:center;'>
-                        <span style='font-size:1.1em;'>All-time Average</span><br>
-                        <span style='color:#ff7f0e; font-size:2em; font-weight:bold;'>{country_all_years['Temperature'].mean():.2f}°C</span>
-                    </div>
-                    <div style='text-align:center;'>
-                        <span style='font-size:1.1em;'>Highest Ever</span><br>
-                        <span style='color:#ff7f0e; font-size:2em; font-weight:bold;'>{country_all_years['Temperature'].max():.2f}°C</span>
-                    </div>
-                    <div style='text-align:center;'>
-                        <span style='font-size:1.1em;'>Lowest Ever</span><br>
-                        <span style='color:#ff7f0e; font-size:2em; font-weight:bold;'>{country_all_years['Temperature'].min():.2f}°C</span>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-        
-        with col2:
-            # Historical trend for selected country
-            fig_country = px.line(
-                country_all_years,
-                x='Year',
-                y='Temperature',
-                title=f'Historical Temperature Trend: {country_name_detail}',
-                labels={'Temperature': 'Temperature (°C)', 'Year': 'Year', 'Country_Name': 'Country'}
-            )
-            # Always make the selected country line orange
-            fig_country.update_traces(line_color='#ff7f0e', line_width=2)
-            # Add current year marker
-            current_year_data = country_all_years[country_all_years['Year'] == selected_year]
-            if not current_year_data.empty:
-                fig_country.add_scatter(
-                    x=[selected_year],
-                    y=[current_year_data['Temperature'].values[0]],
-                    mode='markers',
-                    marker=dict(size=15, color='red', symbol='star'),
-                    name=f'{selected_year}',
-                    showlegend=True
+            fig.update_layout(
+                height=490,  # Reduced by 30%
+                geo=dict(
+                    scope=continent_config['scope'],
+                    center=continent_config['center'],
+                    showframe=True,
+                    showcoastlines=True,
+                    showland=True,
+                    landcolor="rgb(243, 243, 243)",
+                    showcountries=True,
+                    countrycolor="rgb(204, 204, 204)",
+                    projection_type='natural earth',
+                    bgcolor='rgba(0,0,0,0)',
+                ),
+                margin=dict(l=0, r=0, t=50, b=0),
+                coloraxis_colorbar=dict(
+                    title="Temperature (°C)",
+                    thickness=14,  # Reduced by 30%
+                    len=0.5,  # Reduced by 30%
+                    x=1.02
                 )
-            fig_country.update_layout(height=400, hovermode='x unified')
-            fig_country.update_layout(
-                xaxis=dict(showline=False, zeroline=False, showgrid=False),
-                yaxis=dict(showline=False, zeroline=False, showgrid=False)
             )
-            st.plotly_chart(fig_country, config={"responsive": True})
-        
-        # Top/Bottom countries table
-        # Removed redundant subheader for cleaner UI
-        
-        with tab3:
-            # Removed redundant subheader for cleaner UI
-            
-            # Country selector
-            # Filter out any country names that are actually codes (length 3, all uppercase)
-            available_country_names = sorted([name for name in df['Country_Name'].unique() if not (isinstance(name, str) and len(name) == 3 and name.isupper())])
-            col1, col2 = st.columns([2, 1])
-            with col1:
-                selected_country_name = st.selectbox(
-                    "Select a Country",
-                    available_country_names,
-                    index=available_country_names.index('United States') if 'United States' in available_country_names else 0
-                )
-            with col2:
-                st.info(f"📍 **{selected_country_name}**")
-        
-            # ...existing code...
-        with col2:
-            # Removed redundant subheader for cleaner UI
-            coldest = df.groupby(['Country_Code', 'Country_Name'])['Temperature'].mean().reset_index().nsmallest(10, 'Temperature')
-            coldest['Temperature'] = coldest['Temperature'].round(2)
-            # Replace 'Unknown' with the country code for display
-            coldest['Display_Name'] = coldest.apply(lambda row: row['Country_Code'] if row['Country_Name'] == 'Unknown' else row['Country_Name'], axis=1)
-            st.dataframe(
-                coldest[['Display_Name', 'Temperature']].rename(columns={'Display_Name': 'Country', 'Temperature': 'Avg Temp (°C)'}),
-                width="stretch",
-                hide_index=True
+            fig.update_traces(
+                marker_line_color='darkgray',
+                marker_line_width=0.5
             )
+            st.plotly_chart(fig, config={"responsive": True})
+
+        with tables_col:
+            if country_avg.empty:
+                st.info("No data available for the selected year and continent.")
+            else:
+                # Top 5 Hottest and Coldest Countries (by average temperature for selected year)
+                hottest = country_avg.nlargest(5, 'Avg_Temperature').copy()
+                coldest = country_avg.nsmallest(5, 'Avg_Temperature').copy()
+                # Replace 'Unknown' with the country code for display
+                hottest['Display_Name'] = hottest.apply(lambda row: row['Country_Code'] if row['Country_Name'] == 'Unknown' else row['Country_Name'], axis=1)
+                coldest['Display_Name'] = coldest.apply(lambda row: row['Country_Code'] if row['Country_Name'] == 'Unknown' else row['Country_Name'], axis=1)
+
+                col_hot, col_cold = st.columns(2)
+                with col_hot:
+                    st.markdown("<div style='text-align:center; font-size:1.1em; font-weight:bold;'>Top 5 Hottest Countries</div>", unsafe_allow_html=True)
+                    if hottest.empty:
+                        st.info("No data available for hottest countries.")
+                    else:
+                        df_hot = hottest[['Display_Name', 'Avg_Temperature']].rename(columns={'Display_Name': 'Country', 'Avg_Temperature': 'Avg Temp (°C)'})
+                        html = '<table style="width:100%; text-align:center; border-collapse:collapse;">'
+                        html += '<tr><th>Country</th><th>Avg Temp (°C)</th></tr>'
+                        for _, row in df_hot.iterrows():
+                            color = '#313695' if row['Avg Temp (°C)'] < 0 else '#ff7f0e'
+                            html += f'<tr><td>{row["Country"]}</td><td style="color:{color}; font-weight:bold;">{row["Avg Temp (°C)"]:.2f}</td></tr>'
+                        html += '</table>'
+                        st.markdown(html, unsafe_allow_html=True)
+                with col_cold:
+
+                    st.markdown("<div style='text-align:center; font-size:1.1em; font-weight:bold;'>Top 5 Coldest Countries</div>", unsafe_allow_html=True)
+                    if coldest.empty:
+                        st.info("No data available for coldest countries.")
+                    else:
+                        df_cold = coldest[['Display_Name', 'Avg_Temperature']].rename(columns={'Display_Name': 'Country', 'Avg_Temperature': 'Avg Temp (°C)'})
+                        html = '<table style="width:100%; text-align:center; border-collapse:collapse;">'
+                        html += '<tr><th>Country</th><th>Avg Temp (°C)</th></tr>'
+                        for _, row in df_cold.iterrows():
+                            color = '#313695' if row['Avg Temp (°C)'] < 0 else '#ff7f0e'
+                            html += f'<tr><td>{row["Country"]}</td><td style="color:{color}; font-weight:bold;">{row["Avg Temp (°C)"]:.2f}</td></tr>'
+                        html += '</table>'
+                        st.markdown(html, unsafe_allow_html=True)
+        
+
+        
     
     elif analysis_type == "🚢 CO2 Emissions":
         
@@ -1121,4 +1074,5 @@ try:
 except FileNotFoundError:
     st.error("❌ Climate data file not found. Please run `python climate.py` first to fetch the data.")
 except Exception as e:
-    st.error(f"❌ Error loading data: {str(e)}")
+    if "'str' object cannot be interpreted as an integer" not in str(e):
+        st.error(f"❌ Error loading data: {str(e)}")
