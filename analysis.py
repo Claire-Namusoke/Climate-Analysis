@@ -140,7 +140,62 @@ def load_climate_data():
     df['Country_Name'] = df['Country_Code'].map(country_names)
     # If any country names are still missing, replace with empty string (or optionally with 'Unknown')
     df['Country_Name'] = df['Country_Name'].fillna('Unknown')
-    
+
+    # Add continent mapping
+    country_to_continent = {
+        # Africa
+        'DZA': 'Africa', 'AGO': 'Africa', 'BEN': 'Africa', 'BWA': 'Africa', 'BFA': 'Africa', 'BDI': 'Africa',
+        'CMR': 'Africa', 'CPV': 'Africa', 'CAF': 'Africa', 'TCD': 'Africa', 'COM': 'Africa', 'COG': 'Africa',
+        'CIV': 'Africa', 'COD': 'Africa', 'DJI': 'Africa', 'EGY': 'Africa', 'GNQ': 'Africa', 'ERI': 'Africa',
+        'SWZ': 'Africa', 'ETH': 'Africa', 'GAB': 'Africa', 'GMB': 'Africa', 'GHA': 'Africa', 'GIN': 'Africa',
+        'GNB': 'Africa', 'KEN': 'Africa', 'LSO': 'Africa', 'LBR': 'Africa', 'LBY': 'Africa', 'MDG': 'Africa',
+        'MWI': 'Africa', 'MLI': 'Africa', 'MRT': 'Africa', 'MUS': 'Africa', 'MYT': 'Africa', 'MAR': 'Africa',
+        'MOZ': 'Africa', 'NAM': 'Africa', 'NER': 'Africa', 'NGA': 'Africa', 'REU': 'Africa', 'RWA': 'Africa',
+        'STP': 'Africa', 'SEN': 'Africa', 'SYC': 'Africa', 'SLE': 'Africa', 'SOM': 'Africa', 'ZAF': 'Africa',
+        'SSD': 'Africa', 'SDN': 'Africa', 'TZA': 'Africa', 'TGO': 'Africa', 'TUN': 'Africa', 'UGA': 'Africa',
+        'COD': 'Africa', 'ZMB': 'Africa', 'ZWE': 'Africa',
+        # Asia
+        'AFG': 'Asia', 'ARM': 'Asia', 'AZE': 'Asia', 'BHR': 'Asia', 'BGD': 'Asia', 'BTN': 'Asia', 'BRN': 'Asia',
+        'KHM': 'Asia', 'CHN': 'Asia', 'CYP': 'Asia', 'GEO': 'Asia', 'IND': 'Asia', 'IDN': 'Asia', 'IRN': 'Asia',
+        'IRQ': 'Asia', 'ISR': 'Asia', 'JPN': 'Asia', 'JOR': 'Asia', 'KAZ': 'Asia', 'KWT': 'Asia', 'KGZ': 'Asia',
+        'LAO': 'Asia', 'LBN': 'Asia', 'MAC': 'Asia', 'MYS': 'Asia', 'MDV': 'Asia', 'MNG': 'Asia', 'MMR': 'Asia',
+        'NPL': 'Asia', 'PRK': 'Asia', 'OMN': 'Asia', 'PAK': 'Asia', 'PSE': 'Asia', 'PHL': 'Asia', 'QAT': 'Asia',
+        'SAU': 'Asia', 'SGP': 'Asia', 'KOR': 'Asia', 'LKA': 'Asia', 'SYR': 'Asia', 'TWN': 'Asia', 'TJK': 'Asia',
+        'THA': 'Asia', 'TLS': 'Asia', 'TUR': 'Asia', 'TKM': 'Asia', 'ARE': 'Asia', 'UZB': 'Asia', 'VNM': 'Asia',
+        'YEM': 'Asia',
+        # Europe
+        'ALB': 'Europe', 'AND': 'Europe', 'AUT': 'Europe', 'BLR': 'Europe', 'BEL': 'Europe', 'BIH': 'Europe',
+        'BGR': 'Europe', 'HRV': 'Europe', 'CZE': 'Europe', 'DNK': 'Europe', 'EST': 'Europe', 'FRO': 'Europe',
+        'FIN': 'Europe', 'FRA': 'Europe', 'DEU': 'Europe', 'GIB': 'Europe', 'GRC': 'Europe', 'GGY': 'Europe',
+        'HUN': 'Europe', 'ISL': 'Europe', 'IRL': 'Europe', 'IMN': 'Europe', 'ITA': 'Europe', 'JEY': 'Europe',
+        'LVA': 'Europe', 'LIE': 'Europe', 'LTU': 'Europe', 'LUX': 'Europe', 'MLT': 'Europe', 'MDA': 'Europe',
+        'MCO': 'Europe', 'MNE': 'Europe', 'NLD': 'Europe', 'MKD': 'Europe', 'NOR': 'Europe', 'POL': 'Europe',
+        'PRT': 'Europe', 'ROU': 'Europe', 'RUS': 'Europe', 'SMR': 'Europe', 'SRB': 'Europe', 'SVK': 'Europe',
+        'SVN': 'Europe', 'ESP': 'Europe', 'SWE': 'Europe', 'CHE': 'Europe', 'UKR': 'Europe', 'GBR': 'Europe',
+        'VAT': 'Europe',
+        # North America
+        'AIA': 'North America', 'ATG': 'North America', 'BHS': 'North America', 'BRB': 'North America',
+        'BLZ': 'North America', 'BMU': 'North America', 'CAN': 'North America', 'CYM': 'North America',
+        'CRI': 'North America', 'CUB': 'North America', 'DMA': 'North America', 'DOM': 'North America',
+        'SLV': 'North America', 'GRL': 'North America', 'GRD': 'North America', 'GLP': 'North America',
+        'GTM': 'North America', 'HTI': 'North America', 'HND': 'North America', 'JAM': 'North America',
+        'MTQ': 'North America', 'MEX': 'North America', 'MSR': 'North America', 'ANT': 'North America',
+        'NIC': 'North America', 'PAN': 'North America', 'PRI': 'North America', 'KNA': 'North America',
+        'LCA': 'North America', 'SPM': 'North America', 'VCT': 'North America', 'TTO': 'North America',
+        'TCA': 'North America', 'USA': 'North America', 'VIR': 'North America',
+        # South America
+        'ARG': 'South America', 'BOL': 'South America', 'BRA': 'South America', 'CHL': 'South America',
+        'COL': 'South America', 'ECU': 'South America', 'FLK': 'South America', 'GUF': 'South America',
+        'GUY': 'South America', 'PRY': 'South America', 'PER': 'South America', 'SUR': 'South America',
+        'URY': 'South America', 'VEN': 'South America',
+        # Oceania
+        'ASM': 'Oceania', 'AUS': 'Oceania', 'COK': 'Oceania', 'FJI': 'Oceania', 'PYF': 'Oceania',
+        'GUM': 'Oceania', 'KIR': 'Oceania', 'MHL': 'Oceania', 'FSM': 'Oceania', 'NRU': 'Oceania',
+        'NCL': 'Oceania', 'NZL': 'Oceania', 'NIU': 'Oceania', 'NFK': 'Oceania', 'MNP': 'Oceania',
+        'PLW': 'Oceania', 'PNG': 'Oceania', 'WSM': 'Oceania', 'SLB': 'Oceania', 'TKL': 'Oceania',
+        'TON': 'Oceania', 'TUV': 'Oceania', 'VUT': 'Oceania',
+    }
+    df['Continent'] = df['Country_Code'].map(country_to_continent).fillna('Unknown')
     return df
 
 @st.cache_data
@@ -229,62 +284,8 @@ try:
     # Main content area
     if analysis_type == "🌡️ Climate Temperature":
         
-        # Create tabs for different views (no icons or labels)
-        tab1, tab2, tab3, tab4, tab5 = st.tabs(["", "", "", "", ""])
-
-        with tab1:
-            # Removed redundant subheader for cleaner UI
-            # Calculate global average by year
-            global_avg = df.groupby('Year')['Temperature'].mean().reset_index()
-            
-            # Key metrics
-            col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            latest_year = global_avg['Year'].max()
-            latest_temp = global_avg[global_avg['Year'] == latest_year]['Temperature'].values[0]
-            st.markdown(f"""
-                <div style='text-align:center;'>
-                    <span style='font-size:1.1em;'>Latest Year</span><br>
-                    <span style='color:#ff7f0e; font-size:2em;'>{latest_year}</span>
-                </div>
-            """, unsafe_allow_html=True)
-        
-        with col2:
-            st.markdown(f"""
-                <div style='text-align:center;'>
-                    <span style='font-size:1.1em;'>Latest Avg Temp</span><br>
-                    <span style='color:#ff7f0e; font-size:2em;'>{latest_temp:.2f}°C</span>
-                </div>
-            """, unsafe_allow_html=True)
-        
-        with col3:
-            earliest_temp = global_avg[global_avg['Year'] == global_avg['Year'].min()]['Temperature'].values[0]
-            temp_change = latest_temp - earliest_temp
-            st.markdown(f"""
-                <div style='text-align:center;'>
-                    <span style='font-size:1.1em;'>Temperature Change</span><br>
-                    <span style='color:#ff7f0e; font-size:2em;'>{temp_change:+.2f}°C</span>
-                </div>
-            """, unsafe_allow_html=True)
-        
-        with col4:
-            max_temp = df['Temperature'].max()
-            st.markdown(f"""
-                <div style='text-align:center;'>
-                    <span style='font-size:1.1em;'>Highest Recorded</span><br>
-                    <span style='color:#ff7f0e; font-size:2em;'>{max_temp:.2f}°C</span>
-                </div>
-            """, unsafe_allow_html=True)
-        
-
-        
-        # Global temperature trend
-        # Removed redundant subheader for cleaner UI
-        
-        # Show global temperature trend and top 5 tables side by side
-        # Show only the global temperature trend (top hottest/coldest visuals removed)
-        # Two columns: left = global trend, right = country selector + historical trend
+        # --- Restore global temperature trend and country selector visuals ---
+        global_avg = df.groupby('Year')['Temperature'].mean().reset_index()
         col_trend, col_country = st.columns([1, 1])
         with col_trend:
             fig = px.line(
@@ -301,13 +302,12 @@ try:
                     showline=False,
                     zeroline=False,
                     showgrid=False,
-                    tickformat='d'  # No commas for years
+                    tickformat='d'
                 ),
                 yaxis=dict(showline=False, zeroline=False, showgrid=False)
             )
             st.plotly_chart(fig, use_container_width=True)
         with col_country:
-            # Country selector for detailed view (reduced width)
             available_country_names = sorted(df['Country_Name'].unique())
             selected_country_name = st.selectbox(
                 "Select a country for detailed analysis",
@@ -315,11 +315,8 @@ try:
                 index=available_country_names.index('United States') if 'United States' in available_country_names else 0,
                 key='main_country_selector'
             )
-            # Get country data for all years
             country_all_years = df[df['Country_Name'] == selected_country_name].sort_values('Year')
             country_name_detail = selected_country_name
-
-            # Historical stats directly under filter bar
             stats_col1, stats_col2, stats_col3 = st.columns(3)
             with stats_col1:
                 st.markdown(f"""
@@ -342,8 +339,6 @@ try:
                         <span style='color:#ff7f0e; font-size:0.67em;'>{country_all_years['Temperature'].min():.2f}°C</span>
                     </div>
                 """, unsafe_allow_html=True)
-
-            # Historical trend for selected country (full width below)
             fig_country = px.line(
                 country_all_years,
                 x='Year',
@@ -355,54 +350,49 @@ try:
             fig_country.update_layout(height=400, hovermode='x unified')
             fig_country.update_layout(xaxis=dict(showline=False, zeroline=False), yaxis=dict(showline=False, zeroline=False))
             st.plotly_chart(fig_country, config={"responsive": True})
-        
-        with tab2:
-            # Compact year and continent filters above the map section
-            filter_col1, filter_col2, _ = st.columns([1, 1, 2])
-            with filter_col1:
-                selected_year = st.slider(
-                    "Year",
-                    min_value=2019,
-                    max_value=2024,
-                    value=2024,
-                    step=1,
-                    key="map_year_slider"
-                )
-            with filter_col2:
-                selected_continent = st.selectbox(
-                    "Continent",
-                    ["World", "Africa", "Asia", "Europe", "North America", "South America", "Oceania"],
-                    index=0,
-                    key="map_continent_select"
-                )
-            continents = {
-                'World': {'scope': 'world', 'center': None},
-                'Africa': {'scope': 'africa', 'center': {'lat': 0, 'lon': 20}},
-                'Asia': {'scope': 'asia', 'center': {'lat': 30, 'lon': 90}},
-                'Europe': {'scope': 'europe', 'center': {'lat': 50, 'lon': 10}},
-                'North America': {'scope': 'north america', 'center': {'lat': 40, 'lon': -100}},
-                'South America': {'scope': 'south america', 'center': {'lat': -15, 'lon': -60}},
-                'Oceania': {'scope': 'world', 'center': {'lat': -25, 'lon': 140}}
-            }
 
-            # Filter the main dataset for year and continent
-            if selected_continent == "World":
-                df_filtered = df[df['Year'] == selected_year].copy()
-            else:
-                df_filtered = df[(df['Year'] == selected_year) & (df['Continent'] == selected_continent)].copy()
-
-            # Calculate average temperature by country for filtered data
-            country_avg = df_filtered.groupby('Country_Code')['Temperature'].mean().reset_index()
-            country_avg.columns = ['Country_Code', 'Avg_Temperature']
-            country_avg['Country_Name'] = country_avg['Country_Code'].map(
-                dict(zip(df['Country_Code'], df['Country_Name']))
+        # --- Place year and continent filters just above the map visual ---
+        # Filter the main dataset for year and continent
+        filter_col1, filter_col2, _ = st.columns([1, 1, 2])
+        with filter_col1:
+            selected_year = st.slider(
+                "Year",
+                min_value=int(df['Year'].min()),
+                max_value=int(df['Year'].max()),
+                value=int(df['Year'].max()),
+                step=1,
+                key="map_year_slider"
             )
-        
-     
+        with filter_col2:
+            selected_continent = st.selectbox(
+                "Continent",
+                ["World", "Africa", "Asia", "Europe", "North America", "South America", "Oceania"],
+                index=0,
+                key="map_continent_select"
+            )
+        continents = {
+            'World': {'scope': 'world', 'center': None},
+            'Africa': {'scope': 'africa', 'center': {'lat': 0, 'lon': 20}},
+            'Asia': {'scope': 'asia', 'center': {'lat': 30, 'lon': 90}},
+            'Europe': {'scope': 'europe', 'center': {'lat': 50, 'lon': 10}},
+            'North America': {'scope': 'north america', 'center': {'lat': 40, 'lon': -100}},
+            'South America': {'scope': 'south america', 'center': {'lat': -15, 'lon': -60}},
+            'Oceania': {'scope': 'world', 'center': {'lat': -25, 'lon': 140}}
+        }
 
-        # Place metrics, map, and tables in a single row, map width matches both tables
+        if selected_continent == "World":
+            df_filtered = df[df['Year'] == selected_year].copy()
+        else:
+            df_filtered = df[(df['Year'] == selected_year) & (df['Continent'] == selected_continent)].copy()
+
+        # Calculate average temperature by country for filtered data
+        country_avg = df_filtered.groupby('Country_Code')['Temperature'].mean().reset_index()
+        country_avg.columns = ['Country_Code', 'Avg_Temperature']
+        country_avg['Country_Name'] = country_avg['Country_Code'].map(
+            dict(zip(df['Country_Code'], df['Country_Name']))
+        )
+
         metrics_col, map_col, hot_col, cold_col = st.columns([1, 2, 1, 1], gap="small")
-
         with metrics_col:
             global_avg_year = country_avg['Avg_Temperature'].mean()
             hottest_country = country_avg.loc[country_avg['Avg_Temperature'].idxmax()]
@@ -415,7 +405,6 @@ try:
                 temp_value_float = float(temp_value)
             temp_color = '#313695' if temp_value_float < 0 else "#593e27"
             temp_range = country_avg['Avg_Temperature'].max() - country_avg['Avg_Temperature'].min()
-
             st.markdown(f"""
                 <div style='text-align:left; margin-bottom:0.2em;'>
                     <span style='font-size:0.90em; color:#888;'>Global Avg</span><br>
@@ -434,7 +423,6 @@ try:
                     <span style='color:#ff7f0e; font-size:1em;'>{temp_range:.1f}°C</span>
                 </div>
             """, unsafe_allow_html=True)
-
         with map_col:
             continent_config = continents[selected_continent]
             fig = px.choropleth(
@@ -485,7 +473,6 @@ try:
                 marker_line_width=0.5
             )
             st.plotly_chart(fig, config={"responsive": True, "displayModeBar": False, "use_container_width": True})
-
         with hot_col:
             if country_avg.empty:
                 st.info("No data for year/continent.")
@@ -501,7 +488,6 @@ try:
                     html += f'<tr><td>{row["Country"]}</td><td style="color:{color};">{row["Avg Temp (°C)"]:.2f}</td></tr>'
                 html += '</table>'
                 st.markdown(html, unsafe_allow_html=True)
-
         with cold_col:
             if country_avg.empty:
                 st.info("No data for year/continent.")
