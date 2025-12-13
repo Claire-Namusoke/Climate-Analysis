@@ -792,71 +792,45 @@ try:
         if sea_level_df is None:
             st.error("❌ Sea level data not available. Please run `python sea_level.py` first.")
         else:
-            st.markdown("""
-            This section analyzes the relationship between global temperature changes and sea level rise,
-            showing how warming temperatures contribute to rising sea levels through thermal expansion
-            and ice sheet melting.
-            """)
+
             
             # Key metrics
-            col1, col2, col3, col4 = st.columns(4)
-            
+            col1, col2, col4 = st.columns(3)
+
             with col1:
                 total_rise = sea_level_df['GMSL_Variation_mm'].iloc[-1] - sea_level_df['GMSL_Variation_mm'].iloc[0]
-                st.metric("Total Sea Level Rise", f"{total_rise:.1f} mm", 
-                         delta=f"{total_rise/10:.2f} cm (2019-2024)")
-            
+                st.markdown(f"""
+                <div style='font-size:1.5em; color:#fff; font-weight:700; margin-bottom:0.2em;'>Total Sea Level Rise</div>
+                <div style='font-size:2.2em; color:#1f77b4; font-weight:bold;'>{total_rise:.1f} mm</div>
+                <div style='color:#1f77b4; font-size:1.1em;'>{total_rise/10:.2f} cm (2019-2024)</div>
+                """, unsafe_allow_html=True)
+
             with col2:
-                avg_rate = sea_level_df['Annual_Rate_mm'].mean()
-                st.metric("Average Rate", f"{avg_rate:.2f} mm/year")
-            
-            with col3:
-                recent_rate = sea_level_df[sea_level_df['Year'] >= 2020]['Annual_Rate_mm'].mean()
-                acceleration = recent_rate - sea_level_df[sea_level_df['Year'] <= 2000]['Annual_Rate_mm'].mean()
-                st.metric("Recent Rate (2020-2024)", f"{recent_rate:.2f} mm/year",
-                         delta=f"+{acceleration:.2f} mm/year acceleration")
-            
+                first_year = sea_level_df['Year'].iloc[0]
+                last_year = sea_level_df['Year'].iloc[-1]
+                time_span = last_year - first_year
+                first_value = sea_level_df['GMSL_Variation_mm'].iloc[0]
+                last_value = sea_level_df['GMSL_Variation_mm'].iloc[-1]
+                total_rise = last_value - first_value
+                avg_rate = total_rise / time_span if time_span > 0 else 0
+                st.markdown(f"""
+                <div style='font-size:1.5em; color:#fff; font-weight:700; margin-bottom:0.2em;'>Average Rate</div>
+                <div style='font-size:2.2em; color:#1f77b4; font-weight:bold;'>{avg_rate:.2f} mm/year</div>
+                """, unsafe_allow_html=True)
+
             with col4:
-                years_covered = len(sea_level_df)
-                st.metric("Data Coverage", f"{years_covered} years",
-                         delta="2019-2024")
+                first_year = 2019
+                last_year = 2024
+                years_covered = last_year - first_year + 1
+                st.markdown(f"""
+                <div style='font-size:1.5em; color:#fff; font-weight:700; margin-bottom:0.2em;'>Data Coverage</div>
+                <div style='font-size:2.2em; color:#1f77b4; font-weight:bold;'>{years_covered} years</div>
+                <div style='color:#1f77b4; font-size:1.1em;'>{first_year}-{last_year}</div>
+                """, unsafe_allow_html=True)
             
 
             
-            # Regional Sea Level Rise Analysis
-            st.subheader("🌍 Top 5 Ocean Regions by Sea Level Rise")
-            
-            try:
-                # Load regional data
-                regional_df = pd.read_csv('sea_level_regional_2019_2024.csv')
-                
-                # Calculate total rise per region
-                regional_summary = regional_df.groupby('Region').agg({
-                    'Sea_Level_mm': ['min', 'max', 'mean', 'count']
-                }).reset_index()
-                regional_summary.columns = ['Region', 'Min_mm', 'Max_mm', 'Mean_mm', 'Records']
-                regional_summary['Total_Rise_mm'] = regional_summary['Max_mm'] - regional_summary['Min_mm']
-                
-                # Get top 5
-                top5_regions = regional_summary.nlargest(5, 'Total_Rise_mm')
-                
-                # Bar chart
-                fig_regional = px.bar(
-                    top5_regions,
-                    x='Region',
-                    y='Total_Rise_mm',
-                    title='Top 5 Ocean Regions by Sea Level Rise (2019-2024)',
-                    labels={'Total_Rise_mm': 'Total Sea Level Rise (mm)', 'Region': 'Ocean Region'},
-                    color='Total_Rise_mm',
-                    color_continuous_scale='Blues'
-                )
-                fig_regional.update_layout(height=400, showlegend=False, coloraxis_showscale=False)
-                st.plotly_chart(fig_regional, use_container_width=True)
-                        
-            except FileNotFoundError:
-                st.info("ℹ️ Regional sea level data not available. Run `python sea_level_regional.py` to generate regional analysis.")
-            except Exception as e:
-                st.warning(f"⚠️ Could not load regional data: {e}")
+
             
 
             
@@ -986,50 +960,9 @@ try:
                     
                     st.plotly_chart(fig4, width="stretch")
                     
-                    st.markdown(f"""
-                    ### 🔍 Key Findings:
-                    
-                    1. **The Climate Connection**: Rising emissions lead to higher temperatures which cause rising sea levels
-                    
-                    2. **All Indicators Rising Together**: Clear evidence of interconnected climate change impacts
-                    
-                    ### ⚠️ Implications:
-                    - Sea levels have risen **{total_rise:.1f} mm** in the 2019-2024 period
-                    - Rate is **accelerating** from {sea_level_df['Annual_Rate_mm'].iloc[0]:.1f} to {sea_level_df['Annual_Rate_mm'].iloc[-1]:.1f} mm/year
-                    - Maritime sector contributes significantly to the problem
-                    - Urgent action needed to reduce emissions and slow sea level rise
-                    
-                    ### 📈 Projections:
-                    At current rates, by 2050:
-                    - Sea levels could rise another **{(2050-2024) * recent_rate:.0f} mm** (**{(2050-2024) * recent_rate / 10:.1f} cm**)
-                    - This threatens coastal cities and island nations
-                    - Economic cost could reach trillions of dollars
-                    """)
             
 
             
-            st.markdown("""
-            ### 💡 Understanding Sea Level Rise
-            
-            **What Causes Sea Level Rise?**
-            1. **Thermal Expansion** (40%): Warmer water expands and takes up more space
-            2. **Melting Ice Sheets** (40%): Greenland and Antarctica losing ice mass
-            3. **Melting Glaciers** (20%): Mountain glaciers worldwide retreating
-            
-            **Why It Matters:**
-            - 40% of global population lives within 100 km of coastlines
-            - Major cities threatened: New York, Miami, Shanghai, Mumbai, Bangkok
-            - Small island nations facing existential threat
-            - Increased coastal flooding and storm surge damage
-            - Saltwater intrusion into freshwater supplies
-            
-            **What Can Be Done:**
-            - Reduce greenhouse gas emissions immediately
-            - Transition to renewable energy
-            - Protect and restore coastal ecosystems (mangroves, wetlands)
-            - Invest in coastal adaptation infrastructure
-            - International cooperation on climate action
-            """)
     
     # Footer
 
@@ -1045,3 +978,5 @@ except FileNotFoundError:
 except Exception as e:
     if "'str' object cannot be interpreted as an integer" not in str(e):
         st.error(f"❌ Error loading data: {str(e)}")
+
+
