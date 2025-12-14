@@ -47,3 +47,5 @@ maritime_*.json
 
 # Logs
 *.log
+test_cols.py
+view_sea_level_data.py

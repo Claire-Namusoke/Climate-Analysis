@@ -1,3 +1,21 @@
+def plot_monthly_percent_change(df: pd.DataFrame):
+    """
+    Plot the percent change in sea level (GMSL_Variation_mm) month-to-month.
+    """
+    import matplotlib.pyplot as plt
+    df_sorted = df.sort_values(['Year', 'Month'])
+    df_sorted['Percent_Change'] = df_sorted['GMSL_Variation_mm'].pct_change() * 100
+    # Create a date label for x-axis
+    df_sorted['Date'] = pd.to_datetime(df_sorted['Year'].astype(str) + '-' + df_sorted['Month'].astype(str))
+    plt.figure(figsize=(12, 5))
+    plt.bar(df_sorted['Date'], df_sorted['Percent_Change'], color='dodgerblue')
+    plt.title('Monthly % Change in Global Mean Sea Level')
+    plt.xlabel('Date')
+    plt.ylabel('% Change from Previous Month')
+    plt.grid(axis='y', linestyle='--', alpha=0.5)
+    plt.tight_layout()
+    plt.show()
+
 """
 Sea Level Data Fetcher - REAL DATA VERSION v2
 
@@ -517,6 +535,10 @@ def main():
     df.to_csv('sea_level_monthly.csv', index=False)
     yearly.to_csv('sea_level_yearly.csv', index=False)
     print("✓ Saved: sea_level_monthly.csv, sea_level_yearly.csv")
+
+    # Plot monthly percent change if monthly data is available
+    if df is not None and not df.empty:
+        plot_monthly_percent_change(df)
     
     if source and "NOT REAL" in source:
         print("\n" + "="*70)

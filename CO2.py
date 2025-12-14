@@ -15,7 +15,7 @@ import json
 from datetime import datetime
 from typing import Dict, Tuple, Optional
 
-
+        try:
 # OECD SDMX-JSON API Endpoints
 # World data - Global maritime emissions totals
 URL_WORLD = "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD.SEEA,DSD_MARITIME_TRANSPORT@DF_MARITIME_TRANSPORT,2.0/W.M.....EMISSIONS_POD..BULK_CARRIER+CHEM_TANKER+CONTAINER+GEN_CARGO+LIQ_GAS_TANKER+OIL_TANKER+OTHER_LIQ_TANKER+FERRY_PAX+CRUISE+FERRY_ROPAX+REFRIG_BULK+RO_RO+VEHICLE+YACHT+SERVICE_TUG+OFFSHORE+SERVICE_OTHER+MISC_FISH+MISC_OTHER.TER_DOM+TER_INT?dimensionAtObservation=AllDimensions"

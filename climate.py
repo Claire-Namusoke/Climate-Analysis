@@ -1,3 +1,61 @@
+import json
+import pandas as pd
+import os
+
+# Clean climate_data.json
+json_path = 'climate_data.json'
+if os.path.exists(json_path):
+    with open(json_path, 'r') as f:
+        data = json.load(f)
+    clim = data['data']['data']
+    for country in list(clim.keys()):
+        if not isinstance(clim[country], dict):
+            continue
+        for date in list(clim[country].keys()):
+            year = int(date.split('-')[0])
+            if year < 2019 or year > 2023:
+                del clim[country][date]
+        if not clim[country]:
+            del clim[country]
+    with open(json_path, 'w') as f:
+        json.dump(data, f, indent=2)
+    print(f'{json_path} cleaned to 2019-2023')
+
+
+# Clean CSV files
+csv_files = [
+    'maritime_world_total.csv',
+    'maritime_oecd_countries.csv',
+    'sea_level_monthly.csv',
+    'sea_level_regional_2019_2024.csv',
+    'sea_level_by_region_yearly.csv',
+    'sea_level_yearly_new.csv'
+]
+for file in csv_files:
+    if not os.path.exists(file):
+        print(f'{file} not found')
+        continue
+    df = pd.read_csv(file)
+    # Special handling for maritime files with 'Time_Period' column
+    if file in ['maritime_world_total.csv', 'maritime_oecd_countries.csv']:
+        if 'Time_Period' in df.columns:
+            # Extract year from 'Time_Period' and filter
+            df['year'] = df['Time_Period'].astype(str).str.extract(r'(\d{4})').astype(int)
+            df = df[(df['year'] >= 2019) & (df['year'] <= 2023)]
+            df = df.drop(columns=['year'])
+            df.to_csv(file, index=False)
+            print(f'{file} cleaned to 2019-2023 using Time_Period')
+        else:
+            print(f'No Time_Period column found in {file}')
+    else:
+        year_cols = [col for col in df.columns if col.lower().startswith('year') or col.lower() == 'year']
+        if year_cols:
+            year_col = year_cols[0]
+            df = df[(df[year_col] >= 2019) & (df[year_col] <= 2023)]
+            df.to_csv(file, index=False)
+            print(f'{file} cleaned to 2019-2023')
+        else:
+            print(f'No year column found in {file}')
 """
 Climate Data Analysis Tool
 
@@ -281,6 +339,40 @@ def auto_update_data(api_url, filename="climate_data.json", force=False):
         return False
 
 
+def show_climate_table(data_file="climate_data.json", num_rows=20):
+    """
+    Display the first `num_rows` rows of climate data from the given JSON file.
+    """
+    import pandas as pd
+    with open(data_file, 'r') as f:
+        data = json.load(f)
+    climate_data = data.get('data', {}).get('data', {})
+    rows = []
+    for country_code, country_data in climate_data.items():
+        if isinstance(country_data, dict):
+            for date, temp in country_data.items():
+                rows.append({
+                    'Country_Code': country_code,
+                    'Date': date,
+                    'Temperature': temp
+                })
+    df = pd.DataFrame(rows)
+    df = df.sort_values(['Country_Code', 'Date'])
+    print("="*70)
+    print("WORLD BANK CLIMATE DATA - FIRST {} ROWS".format(num_rows))
+    print("="*70)
+    print(f"\nTotal records: {len(df):,}")
+    print(f"Countries: {df['Country_Code'].nunique()}")
+    print(f"Date range: {df['Date'].min()} to {df['Date'].max()}")
+    print(f"\n{'='*70}")
+    print(f"FIRST {num_rows} ROWS")
+    print(f"{'='*70}\n")
+    print(df.head(num_rows).to_string(index=False))
+    print(f"\n{'='*70}")
+    print(f"✓ Showing {num_rows} of {len(df):,} total rows")
+    print("="*70)
+
+
 def main():
     """
     Main function for climate data analysis.
@@ -335,5 +427,8 @@ def main():
 
 
 if __name__ == "__main__":
-    # Entry point: Execute main function when script is run directly
-    main()
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == "show-table":
+        show_climate_table()
+    else:
+        main()
